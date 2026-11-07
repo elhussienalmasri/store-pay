@@ -4,6 +4,7 @@ import { Navbar } from '../components/Navbar';
 import { MakeEscrowCard } from '../components/MakeEscrowCard';
 import { OpenEscrowsList } from '../components/OpenEscrowsList';
 import { P2PEscrowPortal } from '../components/P2PEscrowPortal';
+import { MerchantWidgetExperience } from '../components/widget/MerchantWidgetExperience';
 import { DevnetFaucetHelper } from '../components/DevnetFaucetHelper';
 import { TransactionModal } from '../components/TransactionModal';
 import { fetchOpenEscrows } from '../lib/escrowProgram';
@@ -13,7 +14,7 @@ import { Shield, Sparkles, ExternalLink, Code2 } from 'lucide-react';
 export default function Home() {
   const { connection } = useConnection();
 
-  // Active view tab: 'make' | 'explore' | 'p2p'
+  // Active view tab: 'make' | 'explore' | 'p2p' | 'widget'
   const [activeTab, setActiveTab] = useState('make');
 
   // Escrow state
@@ -123,6 +124,12 @@ export default function Home() {
               openTxModal={openTxModal}
               onRefresh={loadEscrows}
             />
+          </div>
+        )}
+
+        {activeTab === 'widget' && (
+          <div className="animate-in fade-in duration-300">
+            <MerchantWidgetExperience />
           </div>
         )}
 
