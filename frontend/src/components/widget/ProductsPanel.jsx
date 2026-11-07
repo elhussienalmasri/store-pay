@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Edit3, Plus, Save, Trash2, X } from 'lucide-react';
+import { Edit3, ExternalLink, Plus, Save, Trash2, X } from 'lucide-react';
 import {
   createProduct,
   deleteProduct,
@@ -17,7 +17,15 @@ const emptyForm = {
   description: '',
   price: '',
   currency: 'USD',
+  kind: 'product',
+  linkUrl: '',
+  listed: true,
 };
+
+const KIND_OPTIONS = [
+  { id: 'product', label: 'Product' },
+  { id: 'service', label: 'Service' },
+];
 
 export function ProductsPanel({ secret, products, onChanged }) {
   const [form, setForm] = useState(emptyForm);
@@ -44,6 +52,9 @@ export function ProductsPanel({ secret, products, onChanged }) {
         description: form.description,
         priceMinor,
         currency: form.currency,
+        kind: form.kind,
+        linkUrl: form.linkUrl,
+        listed: form.listed,
       });
       setForm(emptyForm);
       await onChanged();
@@ -69,6 +80,9 @@ export function ProductsPanel({ secret, products, onChanged }) {
         description: editing.description,
         priceMinor,
         currency: editing.currency,
+        kind: editing.kind,
+        linkUrl: editing.linkUrl,
+        listed: editing.listed,
       });
       setEditing(null);
       await onChanged();
@@ -106,7 +120,7 @@ export function ProductsPanel({ secret, products, onChanged }) {
         <div className="flex items-center justify-between gap-3">
           <div>
             <h2 className="text-lg font-black text-white">
-              {editing ? 'Edit product' : 'Add a product'}
+              {editing ? 'Edit item' : 'Add a product or service'}
             </h2>
             <p className="text-xs text-gray-400 mt-0.5">
               Prices are stored server-side and used to price every checkout.
@@ -127,7 +141,7 @@ export function ProductsPanel({ secret, products, onChanged }) {
                   ? setEditing({ ...editing, name: e.target.value })
                   : update('name', e.target.value)
               }
-              placeholder="product C 99kg"
+              placeholder="Product name"
               required
             />
           </Field>
@@ -140,9 +154,71 @@ export function ProductsPanel({ secret, products, onChanged }) {
                   ? setEditing({ ...editing, description: e.target.value })
                   : update('description', e.target.value)
               }
-              placeholder="Light roast, floral, 250g bag"
+              placeholder="Short description of the item"
             />
           </Field>
+
+          <Field label="Type">
+            <div className="grid grid-cols-2 gap-2">
+              {KIND_OPTIONS.map((option) => {
+                const selected = (editing ? editing.kind : form.kind) === option.id;
+                return (
+                  <button
+                    key={option.id}
+                    type="button"
+                    onClick={() =>
+                      editing
+                        ? setEditing({ ...editing, kind: option.id })
+                        : update('kind', option.id)
+                    }
+                    className={`px-2 py-2 rounded-xl border text-[11px] font-semibold transition ${
+                      selected
+                        ? 'border-[#14F195]/60 bg-[#14F195]/10 text-[#b8ffe3]'
+                        : 'border-[#23273a] bg-[#0e1017] text-gray-400 hover:border-[#3a405c]'
+                    }`}
+                  >
+                    {option.label}
+                  </button>
+                );
+              })}
+            </div>
+          </Field>
+
+          <Field label="Link (optional)">
+            <input
+              type="url"
+              className={inputClass}
+              value={editing ? editing.linkUrl : form.linkUrl}
+              onChange={(e) =>
+                editing
+                  ? setEditing({ ...editing, linkUrl: e.target.value })
+                  : update('linkUrl', e.target.value)
+              }
+              placeholder="https://yourstore.com/item"
+            />
+          </Field>
+
+          <label className="flex items-start gap-2.5 rounded-xl bg-[#0e1017] border border-[#1e2233] p-3 cursor-pointer">
+            <input
+              type="checkbox"
+              className="mt-0.5 accent-[#14F195]"
+              checked={editing ? editing.listed : form.listed}
+              onChange={(e) =>
+                editing
+                  ? setEditing({ ...editing, listed: e.target.checked })
+                  : update('listed', e.target.checked)
+              }
+            />
+            <span>
+              <span className="block text-xs font-semibold text-gray-200">
+                Show on the marketplace
+              </span>
+              <span className="block text-[10px] text-gray-500">
+                Buyers browsing the public marketplace can find and pay for this
+                item. Uncheck to keep it private to your widget and links.
+              </span>
+            </span>
+          </label>
           <div className="grid grid-cols-2 gap-3">
             <Field label="Price">
               <input
@@ -192,7 +268,7 @@ export function ProductsPanel({ secret, products, onChanged }) {
               className="flex-1 h-10 rounded-xl bg-gradient-to-r from-[#9945FF] to-[#14F195] text-[#0b0c12] text-xs font-bold disabled:opacity-50 flex items-center justify-center gap-1.5"
             >
               {editing ? <Save className="w-3.5 h-3.5" /> : <Plus className="w-3.5 h-3.5" />}
-              {busy ? 'Saving…' : editing ? 'Save changes' : 'Add product'}
+              {busy ? 'Saving…' : editing ? 'Save changes' : 'Add item'}
             </button>
             {editing && (
               <button
@@ -210,12 +286,12 @@ export function ProductsPanel({ secret, products, onChanged }) {
       <Panel className="space-y-3">
         <div className="flex items-center justify-between">
           <h2 className="text-lg font-black text-white">Catalog</h2>
-          <span className="text-[11px] text-gray-500">{products.length} product(s)</span>
+          <span className="text-[11px] text-gray-500">{products.length} item(s)</span>
         </div>
 
         {products.length === 0 ? (
           <div className="rounded-2xl border border-dashed border-[#2a2f45] p-8 text-center text-xs text-gray-500">
-            No products yet. Add one to generate a working widget snippet.
+            No products or services yet. Add one to generate a working widget snippet.
           </div>
         ) : (
           <div className="space-y-2">
@@ -225,16 +301,35 @@ export function ProductsPanel({ secret, products, onChanged }) {
                 className="rounded-2xl bg-[#0e1017] border border-[#1e2233] p-3.5 flex items-start justify-between gap-3"
               >
                 <div className="min-w-0">
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 flex-wrap">
                     <p className="text-sm font-bold text-white truncate">{product.name}</p>
+                    <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-[#9945FF]/10 text-[#c4a3ff] border border-[#9945FF]/30 capitalize">
+                      {product.kind || 'product'}
+                    </span>
                     {!product.active && (
                       <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-red-500/10 text-red-300 border border-red-500/30">
                         inactive
                       </span>
                     )}
+                    {product.listed === false && (
+                      <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-amber-500/10 text-amber-300 border border-amber-500/30">
+                        not listed
+                      </span>
+                    )}
                   </div>
                   {product.description && (
                     <p className="text-[11px] text-gray-500 truncate">{product.description}</p>
+                  )}
+                  {product.linkUrl && (
+                    <a
+                      href={product.linkUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1 text-[10px] text-[#b8ffe3] hover:underline mt-1 max-w-full"
+                    >
+                      <ExternalLink className="w-3 h-3 shrink-0" />
+                      <span className="truncate">{product.linkUrl}</span>
+                    </a>
                   )}
                   <p className="text-xs font-mono text-[#14F195] mt-1">
                     {formatFiatMinor(product.priceMinor, product.currency)}
@@ -250,6 +345,9 @@ export function ProductsPanel({ secret, products, onChanged }) {
                         description: product.description,
                         currency: product.currency,
                         price: (product.priceMinor / 100).toFixed(2),
+                        kind: product.kind || 'product',
+                        linkUrl: product.linkUrl || '',
+                        listed: product.listed !== false,
                       })
                     }
                     className="p-2 rounded-lg text-gray-400 hover:text-white hover:bg-white/5"

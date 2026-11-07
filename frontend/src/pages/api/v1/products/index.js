@@ -1,5 +1,12 @@
-import { ApiError, sendError } from '../../../../lib/server/api';
-import { requireMerchant } from '../../../../lib/server/auth';
+import {
+  ApiError,
+  assertOriginAllowed,
+  getClientIp,
+  rateLimit,
+  sendError,
+} from '../../../../lib/server/api';
+import { requireMerchant, resolveMerchantFromRequest } from '../../../../lib/server/auth';
+import { readListed, readProductKind, readProductLink } from '../../../../lib/server/productFields';
 import { insertProduct, listProducts } from '../../../../lib/server/store';
 import { productView } from '../../../../lib/server/views';
 import {
@@ -23,12 +30,25 @@ export default async function handler(req, res) {
   }
 
   try {
-    const merchant = await requireMerchant(req);
-
     if (req.method === 'GET') {
+      const publishableKey = req.query?.publishableKey || req.headers['x-publishable-key'];
+      const { merchant, authenticatedAs } = await resolveMerchantFromRequest(
+        req,
+        publishableKey
+      );
+
+      if (authenticatedAs === 'publishable') {
+        assertOriginAllowed(req, merchant);
+        rateLimit(`products:${merchant.id}:${getClientIp(req)}`, 60, 60_000);
+      }
+
       const products = await listProducts(merchant.id);
-      return res.status(200).json({ products: products.map(productView) });
+      const visible =
+        authenticatedAs === 'publishable' ? products.filter((p) => p.active !== false) : products;
+      return res.status(200).json({ products: visible.map(productView) });
     }
+
+    const merchant = await requireMerchant(req);
 
     const name = String(req.body?.name || '').trim();
     if (name.length < 1 || name.length > 80) {
@@ -49,6 +69,9 @@ export default async function handler(req, res) {
       description,
       priceMinor: readPriceMinor(req.body),
       currency,
+      kind: readProductKind(req.body?.kind) ?? 'product',
+      linkUrl: readProductLink(req.body?.linkUrl) ?? '',
+      listed: readListed(req.body?.listed) ?? true,
       active: req.body?.active !== false,
     });
 

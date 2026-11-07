@@ -1,5 +1,6 @@
 import { ApiError, sendError } from '../../../../lib/server/api';
 import { requireMerchant } from '../../../../lib/server/auth';
+import { readListed, readProductKind, readProductLink } from '../../../../lib/server/productFields';
 import { patchProduct, removeProduct } from '../../../../lib/server/store';
 import { productView } from '../../../../lib/server/views';
 import {
@@ -57,6 +58,15 @@ export default async function handler(req, res) {
     }
     if (req.body?.active !== undefined) {
       patch.active = Boolean(req.body.active);
+    }
+    if (req.body?.kind !== undefined) {
+      patch.kind = readProductKind(req.body.kind);
+    }
+    if (req.body?.linkUrl !== undefined) {
+      patch.linkUrl = readProductLink(req.body.linkUrl);
+    }
+    if (req.body?.listed !== undefined) {
+      patch.listed = readListed(req.body.listed);
     }
 
     if (Object.keys(patch).length === 0) {

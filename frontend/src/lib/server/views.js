@@ -10,10 +10,13 @@ export function productView(product) {
     id: product.id,
     name: product.name,
     description: product.description || '',
+    kind: product.kind === 'service' ? 'service' : 'product',
+    linkUrl: product.linkUrl || '',
     priceMinor: product.priceMinor,
     currency: product.currency,
     priceDisplay: formatFiatMinor(product.priceMinor, product.currency),
     active: product.active !== false,
+    listed: product.listed !== false,
     createdAt: product.createdAt,
     updatedAt: product.updatedAt,
   };
