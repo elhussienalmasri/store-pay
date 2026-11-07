@@ -58,6 +58,8 @@ export default function CheckoutPage() {
   const [txSignature, setTxSignature] = useState('');
   const notifiedRef = useRef(false);
   const [embedded, setEmbedded] = useState(false);
+  const [walletDetected, setWalletDetected] = useState(true);
+  const [devnetBalance, setDevnetBalance] = useState(null);
 
   const sessionId = router.query.sessionId;
   const token = router.query.t;
@@ -91,6 +93,39 @@ export default function CheckoutPage() {
   useEffect(() => {
     loadSession();
   }, [loadSession]);
+
+  useEffect(() => {
+    const check = () => {
+      const provider = window.phantom?.solana || window.solana;
+      setWalletDetected(Boolean(provider?.isPhantom));
+    };
+    check();
+    const timer = setTimeout(check, 1200);
+    window.addEventListener('phantom#initialized', check);
+    return () => {
+      clearTimeout(timer);
+      window.removeEventListener('phantom#initialized', check);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!publicKey) {
+      setDevnetBalance(null);
+      return undefined;
+    }
+    let active = true;
+    connection
+      .getBalance(publicKey)
+      .then((lamports) => {
+        if (active) setDevnetBalance(lamports);
+      })
+      .catch(() => {
+        if (active) setDevnetBalance(null);
+      });
+    return () => {
+      active = false;
+    };
+  }, [publicKey, connection]);
 
   const status = session?.status;
   useEffect(() => {
@@ -385,7 +420,20 @@ export default function CheckoutPage() {
               {expired && (
                 <div className="rounded-2xl border border-red-500/30 bg-red-500/5 p-3 text-xs text-red-200 flex items-start gap-2">
                   <Clock className="w-4 h-4 shrink-0 mt-0.5" />
-                  <p>This checkout link expired. Ask the merchant for a new payment link.</p>
+                  <div className="space-y-2">
+                    <p>
+                      This checkout link expired after one hour. Return to the store and
+                      press “Pay with Crypto” again for a fresh quote.
+                    </p>
+                    {embedded && (
+                      <button
+                        onClick={closeWindow}
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-red-500/20 hover:bg-red-500/30 font-semibold"
+                      >
+                        Start a new checkout
+                      </button>
+                    )}
+                  </div>
                 </div>
               )}
 
@@ -397,6 +445,46 @@ export default function CheckoutPage() {
 
               {['open', 'prepared'].includes(session.status) && (
                 <div className="space-y-3">
+                  <div className="rounded-2xl border border-sky-500/30 bg-sky-500/10 p-3 text-[11px] text-sky-100 space-y-1">
+                    <p className="font-semibold">Devnet checkout</p>
+                    <p className="text-sky-200/80">
+                      Set Phantom to <strong>Solana Devnet</strong> (Settings → Developer
+                      Settings → Change Network). Mainnet wallets fail transaction
+                      simulation.
+                    </p>
+                    {devnetBalance !== null && (
+                      <p className={devnetBalance < 20_000_000 ? 'text-amber-200' : 'text-sky-200/80'}>
+                        Devnet balance: {(devnetBalance / 1_000_000_000).toFixed(4)} SOL
+                        {devnetBalance < 20_000_000 &&
+                          ' — airdrop devnet SOL before paying.'}
+                      </p>
+                    )}
+                    <a
+                      href="https://faucet.solana.com"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-block underline"
+                    >
+                      Get devnet SOL
+                    </a>
+                  </div>
+                  {!walletDetected && !connected && (
+                    <div className="rounded-2xl border border-sky-500/30 bg-sky-500/10 p-3 text-[11px] text-sky-100 space-y-1">
+                      <p className="font-semibold">Phantom wallet not detected</p>
+                      <p className="text-sky-200/80">
+                        Install the Phantom browser extension (or open this page in
+                        Chrome/Edge with Phantom enabled), then connect to pay with SOL.
+                      </p>
+                      <a
+                        href="https://phantom.app/download"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-block underline"
+                      >
+                        Get Phantom
+                      </a>
+                    </div>
+                  )}
                   <div className="flex justify-center">
                     <WalletMultiButton className="!bg-[#1a1d2b] !border !border-[#2b3048] !text-white !font-semibold !text-xs !rounded-xl !h-10 !px-4" />
                   </div>

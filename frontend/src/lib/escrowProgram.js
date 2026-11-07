@@ -337,8 +337,22 @@ export function parseAnchorError(error) {
     return 'Transaction was cancelled in the wallet.';
   }
 
-  if (message.includes('Attempt to debit an account but found no record of a prior credit')) {
-    return 'Insufficient SOL for transaction fee or rent.';
+  if (/simulat/i.test(message)) {
+    return 'Phantom could not simulate this transaction. Switch Phantom to Solana Devnet (Settings → Developer Settings → Change Network) and make sure the wallet holds devnet SOL.';
+  }
+
+  if (
+    message.includes('Attempt to load a program that does not exist') ||
+    message.includes('ProgramAccountNotFound')
+  ) {
+    return 'The escrow program is not available on the network Phantom is using. Switch Phantom to Solana Devnet.';
+  }
+
+  if (
+    message.includes('Attempt to debit an account but found no record of a prior credit') ||
+    message.includes('insufficient lamports')
+  ) {
+    return 'Your wallet needs devnet SOL for the deposit, rent and fees. Airdrop devnet SOL at faucet.solana.com.';
   }
 
   if (message.includes('insufficient funds') || message.includes('custom program error: 0x1')) {
