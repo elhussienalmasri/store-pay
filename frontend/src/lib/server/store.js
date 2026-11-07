@@ -76,6 +76,17 @@ export async function findMerchantBySecret(secretKey) {
   return db.merchants.find((merchant) => merchant.secretHash === secretHash) || null;
 }
 
+export async function findMerchantByEmail(email) {
+  if (!email) return null;
+  const normalized = String(email).trim().toLowerCase();
+  const db = await readDb();
+  return (
+    db.merchants.find(
+      (merchant) => String(merchant.email || '').trim().toLowerCase() === normalized
+    ) || null
+  );
+}
+
 export async function insertMerchant(merchant) {
   return withDb((db) => {
     db.merchants.push(merchant);
@@ -110,12 +121,28 @@ export async function insertProduct(product) {
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
     active: true,
+    kind: 'product',
+    linkUrl: '',
+    listed: true,
     ...product,
   };
   return withDb((db) => {
     db.products.push(record);
     return record;
   });
+}
+
+export async function listMarketplaceProducts() {
+  const db = await readDb();
+  const merchantsById = new Map(db.merchants.map((merchant) => [merchant.id, merchant]));
+  return db.products
+    .filter((product) => product.active !== false && product.listed !== false)
+    .filter((product) => merchantsById.has(product.merchantId))
+    .sort((a, b) => (a.createdAt < b.createdAt ? 1 : -1))
+    .map((product) => ({
+      ...product,
+      merchantName: merchantsById.get(product.merchantId).name,
+    }));
 }
 
 export async function patchProduct(merchantId, productId, patch) {

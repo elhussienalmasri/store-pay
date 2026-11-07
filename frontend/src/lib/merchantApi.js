@@ -38,6 +38,22 @@ export function signupMerchant(payload) {
   return request('/api/v1/merchants', { method: 'POST', body: payload });
 }
 
+export function signupAccount(payload) {
+  return request('/api/auth/signup', { method: 'POST', body: payload });
+}
+
+export function loginMerchant(credentials) {
+  return request('/api/auth/login', { method: 'POST', body: credentials });
+}
+
+export function logoutMerchant() {
+  return request('/api/auth/logout', { method: 'POST' });
+}
+
+export function getSession() {
+  return request('/api/auth/session');
+}
+
 export function getMerchant(secret) {
   return request('/api/v1/merchants/me', { secret });
 }

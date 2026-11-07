@@ -1,9 +1,12 @@
 import React, { useState, useEffect } from 'react';
+import Link from 'next/link';
+import { useRouter } from 'next/router';
 import dynamic from 'next/dynamic';
 import { useConnection, useWallet } from '@solana/wallet-adapter-react';
 import { LAMPORTS_PER_SOL } from '@solana/web3.js';
-import { Shield, ExternalLink, RefreshCw, Layers, ArrowLeftRight, FileCheck, Coins, Zap } from 'lucide-react';
+import { Shield, ExternalLink, RefreshCw, Layers, ArrowLeftRight, FileCheck, Coins, Zap, Store, LogOut, LogIn, ShoppingBag } from 'lucide-react';
 import { PROGRAM_ID_STRING, getExplorerUrl } from '../lib/constants';
+import { getSession, logoutMerchant, clearStoredSecret } from '../lib/merchantApi';
 
 // Dynamically import WalletMultiButton to prevent SSR hydration issues
 const WalletMultiButton = dynamic(
@@ -14,7 +17,32 @@ const WalletMultiButton = dynamic(
 export function Navbar({ activeTab, setActiveTab, onRefresh, isRefreshing }) {
   const { connection } = useConnection();
   const { publicKey } = useWallet();
+  const router = useRouter();
   const [solBalance, setSolBalance] = useState(null);
+  const [merchant, setMerchant] = useState(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    getSession()
+      .then((data) => {
+        if (!cancelled) setMerchant(data?.merchant || null);
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  async function handleSignOut() {
+    clearStoredSecret();
+    try {
+      await logoutMerchant();
+    } catch (err) {
+      console.warn('Failed to clear session:', err);
+    }
+    setMerchant(null);
+    router.reload();
+  }
 
   useEffect(() => {
     let isMounted = true;
@@ -128,6 +156,14 @@ export function Navbar({ activeTab, setActiveTab, onRefresh, isRefreshing }) {
               <Zap className="w-4 h-4 fill-current" />
               Merchant Widget
             </button>
+
+            <Link
+              href="/marketplace"
+              className="flex items-center gap-2 px-4 py-2 text-xs font-semibold rounded-lg text-gray-400 hover:text-white hover:bg-white/5 transition"
+            >
+              <ShoppingBag className="w-4 h-4" />
+              Marketplace
+            </Link>
           </nav>
 
           {/* Wallet Actions */}
@@ -137,6 +173,43 @@ export function Navbar({ activeTab, setActiveTab, onRefresh, isRefreshing }) {
                 <Coins className="w-3.5 h-3.5 text-amber-400" />
                 <span>{solBalance !== null ? `${solBalance} SOL` : '...'}</span>
               </div>
+            )}
+
+            {merchant ? (
+              <>
+                <Link
+                  href="/merchant"
+                  title={merchant.name}
+                  className="inline-flex items-center gap-1.5 px-2.5 py-2 rounded-xl bg-[#131522] border border-[#23273a] text-[11px] font-semibold text-gray-300 hover:text-white"
+                >
+                  <Store className="w-3.5 h-3.5 text-[#14F195] shrink-0" />
+                  <span className="hidden lg:inline max-w-[9rem] truncate">{merchant.name}</span>
+                  <span className="hidden sm:inline lg:hidden">Store</span>
+                </Link>
+                <button
+                  onClick={handleSignOut}
+                  className="inline-flex p-2.5 rounded-xl bg-[#141624] border border-[#23273a] text-gray-400 hover:text-red-300 transition"
+                  title="Sign out"
+                >
+                  <LogOut className="w-4 h-4" />
+                </button>
+              </>
+            ) : (
+              <>
+                <Link
+                  href="/login"
+                  className="inline-flex items-center gap-1.5 px-2.5 py-2 rounded-xl text-xs font-semibold text-gray-300 hover:text-white"
+                >
+                  <LogIn className="w-3.5 h-3.5 sm:hidden" />
+                  <span className="hidden sm:inline">Sign in</span>
+                </Link>
+                <Link
+                  href="/signup"
+                  className="hidden lg:inline-flex px-3 py-2 rounded-xl bg-[#1a1d2b] border border-[#2b3048] text-[11px] font-semibold text-white hover:bg-[#222638] transition"
+                >
+                  Get started
+                </Link>
+              </>
             )}
 
             {onRefresh && (
@@ -195,6 +268,13 @@ export function Navbar({ activeTab, setActiveTab, onRefresh, isRefreshing }) {
             <Zap className="w-3.5 h-3.5" />
             Widget
           </button>
+          <Link
+            href="/marketplace"
+            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg text-gray-400"
+          >
+            <ShoppingBag className="w-3.5 h-3.5" />
+            Market
+          </Link>
         </div>
 
       </div>
