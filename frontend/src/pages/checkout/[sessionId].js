@@ -49,7 +49,8 @@ function shorten(value, size = 4) {
 export default function CheckoutPage() {
   const router = useRouter();
   const { connection } = useConnection();
-  const { publicKey, sendTransaction, connected } = useWallet();
+  const { publicKey, sendTransaction, connected, wallets } = useWallet();
+  const walletDetected = wallets.length > 0;
 
   const [session, setSession] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -58,7 +59,6 @@ export default function CheckoutPage() {
   const [txSignature, setTxSignature] = useState('');
   const notifiedRef = useRef(false);
   const [embedded, setEmbedded] = useState(false);
-  const [walletDetected, setWalletDetected] = useState(true);
   const [devnetBalance, setDevnetBalance] = useState(null);
 
   const sessionId = router.query.sessionId;
@@ -93,20 +93,6 @@ export default function CheckoutPage() {
   useEffect(() => {
     loadSession();
   }, [loadSession]);
-
-  useEffect(() => {
-    const check = () => {
-      const provider = window.phantom?.solana || window.solana;
-      setWalletDetected(Boolean(provider?.isPhantom));
-    };
-    check();
-    const timer = setTimeout(check, 1200);
-    window.addEventListener('phantom#initialized', check);
-    return () => {
-      clearTimeout(timer);
-      window.removeEventListener('phantom#initialized', check);
-    };
-  }, []);
 
   useEffect(() => {
     if (!publicKey) {
@@ -470,19 +456,12 @@ export default function CheckoutPage() {
                   </div>
                   {!walletDetected && !connected && (
                     <div className="rounded-2xl border border-sky-500/30 bg-sky-500/10 p-3 text-[11px] text-sky-100 space-y-1">
-                      <p className="font-semibold">Phantom wallet not detected</p>
+                      <p className="font-semibold">No Solana wallet detected</p>
                       <p className="text-sky-200/80">
-                        Install the Phantom browser extension (or open this page in
-                        Chrome/Edge with Phantom enabled), then connect to pay with SOL.
+                        Install a Solana browser wallet such as Phantom, Solflare,
+                        Backpack or Glow (or enable it in this browser), then connect
+                        to pay with SOL.
                       </p>
-                      <a
-                        href="https://phantom.app/download"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="inline-block underline"
-                      >
-                        Get Phantom
-                      </a>
                     </div>
                   )}
                   <div className="flex justify-center">
