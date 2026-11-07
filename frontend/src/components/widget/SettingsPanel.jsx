@@ -3,13 +3,16 @@ import {
   Check,
   KeyRound,
   LogOut,
+  RefreshCw,
   Save,
   Send,
   ShieldAlert,
   Webhook,
 } from 'lucide-react';
 import {
+  regenerateSecret,
   sendTestWebhook,
+  storeSecret,
   updateMerchant,
 } from '../../lib/merchantApi';
 import { isLikelyPublicKey, maskKey } from '../../lib/widgetCore.mjs';
@@ -21,7 +24,7 @@ const PLANS = [
   { id: 'scale', label: 'Scale · 0.5% + $29/mo' },
 ];
 
-export function SettingsPanel({ secret, merchant, onChanged, onSignOut }) {
+export function SettingsPanel({ secret, merchant, onChanged, onSignOut, onSecretChanged }) {
   const [form, setForm] = useState({
     name: merchant.name,
     email: merchant.email,
@@ -31,6 +34,7 @@ export function SettingsPanel({ secret, merchant, onChanged, onSignOut }) {
     plan: merchant.plan,
   });
   const [busy, setBusy] = useState(false);
+  const [rotating, setRotating] = useState(false);
   const [testing, setTesting] = useState(false);
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
@@ -83,6 +87,27 @@ export function SettingsPanel({ secret, merchant, onChanged, onSignOut }) {
       setError(err.message);
     } finally {
       setBusy(false);
+    }
+  }
+
+  async function handleRegenerateSecret() {
+    const confirmed = window.confirm(
+      'Generate a new secret key? The current key stops working immediately, so update your server before going live.'
+    );
+    if (!confirmed) return;
+
+    setError('');
+    setNotice('');
+    setRotating(true);
+    try {
+      const data = await regenerateSecret(secret);
+      storeSecret(data.secretKey);
+      await onSecretChanged?.(data.secretKey);
+      setNotice('New secret key generated. Copy it now and update your server.');
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setRotating(false);
     }
   }
 
@@ -147,7 +172,7 @@ export function SettingsPanel({ secret, merchant, onChanged, onSignOut }) {
               className={inputClass}
               value={form.domains}
               onChange={(e) => update('domains', e.target.value)}
-              placeholder="shop.acme.coffee, acme.coffee"
+              placeholder="yourstore.com, www.yourstore.com"
             />
           </Field>
 
@@ -184,7 +209,7 @@ export function SettingsPanel({ secret, merchant, onChanged, onSignOut }) {
               className={inputClass}
               value={form.webhookUrl}
               onChange={(e) => update('webhookUrl', e.target.value)}
-              placeholder="https://api.acme.coffee/escrowpay/webhook"
+              placeholder="https://yourstore.com/api/escrowpay/webhook"
             />
           </Field>
 
@@ -250,10 +275,21 @@ export function SettingsPanel({ secret, merchant, onChanged, onSignOut }) {
               <code className="block text-[11px] text-gray-300 break-all font-mono">
                 {maskKey(secret)}
               </code>
-              <p className="text-[10px] text-gray-500">
-                Stored in this browser only. Use it from your server, never in
-                storefront HTML.
-              </p>
+              <div className="flex items-start justify-between gap-2">
+                <p className="text-[10px] text-gray-500">
+                  Stored in this browser only. Use it from your server, never in
+                  storefront HTML.
+                </p>
+                <button
+                  type="button"
+                  onClick={handleRegenerateSecret}
+                  disabled={rotating}
+                  className="shrink-0 inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-[#181b28] border border-[#2a2f45] text-[10px] font-semibold text-gray-300 hover:text-white disabled:opacity-50"
+                >
+                  <RefreshCw className={`w-3 h-3 ${rotating ? 'animate-spin' : ''}`} />
+                  {rotating ? 'Generating…' : 'Generate new key'}
+                </button>
+              </div>
             </div>
             <div className="rounded-xl bg-[#0e1017] border border-[#1e2233] p-3 space-y-1.5">
               <div className="flex items-center justify-between">

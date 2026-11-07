@@ -46,6 +46,10 @@ export function loginMerchant(credentials) {
   return request('/api/auth/login', { method: 'POST', body: credentials });
 }
 
+export function loginWithKey(secretKey) {
+  return request('/api/auth/key', { method: 'POST', body: { secretKey } });
+}
+
 export function logoutMerchant() {
   return request('/api/auth/logout', { method: 'POST' });
 }
@@ -60,6 +64,10 @@ export function getMerchant(secret) {
 
 export function updateMerchant(secret, patch) {
   return request('/api/v1/merchants/me', { secret, method: 'PATCH', body: patch });
+}
+
+export function regenerateSecret(secret) {
+  return request('/api/v1/merchants/me/secret', { secret, method: 'POST' });
 }
 
 export function createProduct(secret, product) {

@@ -12,7 +12,13 @@ import {
   Store,
   Wallet,
 } from 'lucide-react';
-import { loginMerchant, signupAccount, storeSecret, clearStoredSecret } from '../lib/merchantApi';
+import {
+  loginMerchant,
+  loginWithKey,
+  signupAccount,
+  storeSecret,
+  clearStoredSecret,
+} from '../lib/merchantApi';
 import { isLikelyPublicKey } from '../lib/widgetCore.mjs';
 import { Field, inputClass, Panel } from './widget/WidgetUi';
 
@@ -20,12 +26,6 @@ const WalletMultiButton = dynamic(
   async () => (await import('@solana/wallet-adapter-react-ui')).WalletMultiButton,
   { ssr: false }
 );
-
-const PLANS = [
-  { id: 'starter', name: 'Starter', price: 'Free', detail: 'Demo plan · no card required' },
-  { id: 'growth', name: 'Growth', price: '0.9%', detail: 'per settled payment' },
-  { id: 'scale', name: 'Scale', price: '0.5%', detail: 'plus $29/mo · priority support' },
-];
 
 export function AuthForm({ mode = 'login' }) {
   const router = useRouter();
@@ -38,16 +38,20 @@ export function AuthForm({ mode = 'login' }) {
     password: '',
     domain: '',
     payoutWallet: '',
-    plan: 'starter',
   });
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
+  const [useKey, setUseKey] = useState(false);
+  const [secretKey, setSecretKey] = useState('');
 
   function update(field, value) {
     setForm((prev) => ({ ...prev, [field]: value }));
   }
 
   function validate() {
+    if (!isSignup && useKey) {
+      return secretKey.trim() ? null : 'Enter your merchant secret key';
+    }
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email.trim())) {
       return 'Enter a valid email address';
     }
@@ -82,9 +86,11 @@ export function AuthForm({ mode = 'login' }) {
           password: form.password,
           domain: form.domain.trim(),
           payoutWallet: form.payoutWallet.trim(),
-          plan: form.plan,
         });
         storeSecret(data.secretKey);
+      } else if (useKey) {
+        await loginWithKey(secretKey.trim());
+        clearStoredSecret();
       } else {
         await loginMerchant({ email: form.email.trim(), password: form.password });
         // The session cookie identifies the account; drop any key from a previous login.
@@ -135,32 +141,64 @@ export function AuthForm({ mode = 'login' }) {
             </Field>
           )}
 
-          <Field label="Email">
-            <input
-              type="email"
-              className={inputClass}
-              value={form.email}
-              onChange={(e) => update('email', e.target.value)}
-              placeholder="you@example.com"
-              autoComplete="email"
-              required
-            />
-          </Field>
+          {!isSignup && useKey ? (
+            <Field
+              label="Merchant secret key"
+              hint="Legacy stores created before email sign-in can still use their sk_live key."
+            >
+              <input
+                type="password"
+                className={inputClass}
+                value={secretKey}
+                onChange={(e) => setSecretKey(e.target.value)}
+                placeholder="sk_live_…"
+                autoComplete="off"
+                required
+              />
+            </Field>
+          ) : (
+            <>
+              <Field label="Email">
+                <input
+                  type="email"
+                  className={inputClass}
+                  value={form.email}
+                  onChange={(e) => update('email', e.target.value)}
+                  placeholder="contact@example.com"
+                  autoComplete="email"
+                  required
+                />
+              </Field>
 
-          <Field
-            label="Password"
-            hint={isSignup ? 'At least 8 characters with a letter and a number.' : undefined}
-          >
-            <input
-              type="password"
-              className={inputClass}
-              value={form.password}
-              onChange={(e) => update('password', e.target.value)}
-              placeholder="••••••••"
-              autoComplete={isSignup ? 'new-password' : 'current-password'}
-              required
-            />
-          </Field>
+              <Field
+                label="Password"
+                hint={isSignup ? 'At least 8 characters with a letter and a number.' : undefined}
+              >
+                <input
+                  type="password"
+                  className={inputClass}
+                  value={form.password}
+                  onChange={(e) => update('password', e.target.value)}
+                  placeholder="••••••••"
+                  autoComplete={isSignup ? 'new-password' : 'current-password'}
+                  required
+                />
+              </Field>
+            </>
+          )}
+
+          {!isSignup && (
+            <button
+              type="button"
+              onClick={() => {
+                setUseKey((value) => !value);
+                setError('');
+              }}
+              className="text-[11px] font-semibold text-[#c4a3ff] hover:underline"
+            >
+              {useKey ? 'Use email and password instead' : 'Have a merchant key? Sign in with a key'}
+            </button>
+          )}
 
           {isSignup && (
             <>
@@ -206,29 +244,6 @@ export function AuthForm({ mode = 'login' }) {
                 )}
               </Field>
 
-              <div className="space-y-2">
-                <span className="text-[11px] font-semibold uppercase tracking-wider text-gray-400">
-                  Plan
-                </span>
-                <div className="grid sm:grid-cols-3 gap-2">
-                  {PLANS.map((plan) => (
-                    <button
-                      key={plan.id}
-                      type="button"
-                      onClick={() => update('plan', plan.id)}
-                      className={`text-left p-3 rounded-xl border transition ${
-                        form.plan === plan.id
-                          ? 'border-[#14F195]/60 bg-[#14F195]/10'
-                          : 'border-[#23273a] bg-[#0e1017] hover:border-[#3a405c]'
-                      }`}
-                    >
-                      <span className="block text-sm font-bold text-white">{plan.name}</span>
-                      <span className="block text-lg font-black text-[#14F195]">{plan.price}</span>
-                      <span className="block text-[10px] text-gray-500">{plan.detail}</span>
-                    </button>
-                  ))}
-                </div>
-              </div>
             </>
           )}
 
@@ -250,6 +265,8 @@ export function AuthForm({ mode = 'login' }) {
                 : 'Signing in…'
               : isSignup
               ? 'Create account'
+              : useKey
+              ? 'Sign in with key'
               : 'Sign in'}
             {!busy && <ArrowRight className="w-4 h-4" />}
           </button>
