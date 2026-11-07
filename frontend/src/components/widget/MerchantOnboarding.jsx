@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useWallet } from '@solana/wallet-adapter-react';
 import {
   ArrowRight,
@@ -8,6 +8,7 @@ import {
   ShieldCheck,
   Store,
   Wallet,
+  Zap,
 } from 'lucide-react';
 import {
   getMerchant,
@@ -15,6 +16,7 @@ import {
   storeSecret,
 } from '../../lib/merchantApi';
 import { isLikelyPublicKey } from '../../lib/widgetCore.mjs';
+import { DEVNET_RPC_URL, PROGRAM_ID_STRING } from '../../lib/constants';
 import { CopyButton, Field, inputClass, Panel } from './WidgetUi';
 
 const PLANS = [
@@ -52,6 +54,29 @@ export function MerchantOnboarding({ onReady }) {
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
   const [created, setCreated] = useState(null);
+  const [channel, setChannel] = useState('escrow');
+  const [sampleProductId, setSampleProductId] = useState('');
+
+  useEffect(() => {
+    if (!created) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch(
+          `/api/v1/products?publishableKey=${encodeURIComponent(created.merchant.publishableKey)}`
+        );
+        const data = await res.json().catch(() => ({}));
+        if (!cancelled && data?.products?.length) {
+          setSampleProductId(data.products[0].id);
+        }
+      } catch {
+        // The snippet still works once a product id is pasted in.
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [created]);
 
   function update(field, value) {
     setForm((prev) => ({ ...prev, [field]: value }));
@@ -96,6 +121,23 @@ export function MerchantOnboarding({ onReady }) {
   }
 
   if (created) {
+    const origin =
+      typeof window !== 'undefined' ? window.location.origin : 'https://escrowpay.app';
+    const escrowSnippet = `<!-- EscrowPay merchant widget -->
+<script src="${origin}/widget/v1.js" async></script>
+<button
+  data-escrowpay
+  data-public-key="${created.merchant.publishableKey}"
+  data-product="${sampleProductId || 'prd_your_product'}"
+  data-quantity="1"
+  data-mode="escrow"
+>Pay with crypto</button>`;
+    const inpayEnv = `ESCROWPAY_SECRET_KEY=${created.secretKey}
+ESCROWPAY_INPAY_API_URL=${origin}
+NEXT_PUBLIC_ESCROWPAY_INPAY=1
+NEXT_PUBLIC_ESCROWPAY_PROGRAM_ID=${PROGRAM_ID_STRING}
+NEXT_PUBLIC_ESCROWPAY_RPC_URL=${DEVNET_RPC_URL}`;
+
     return (
       <div className="max-w-xl mx-auto">
         <Panel className="space-y-5">
@@ -145,6 +187,51 @@ export function MerchantOnboarding({ onReady }) {
                 {created.merchant.payoutWallet}
               </span>
             </p>
+          </div>
+
+          <div className="space-y-2">
+            <div className="inline-flex rounded-xl bg-[#0e1017] border border-[#23273a] p-1 text-xs font-semibold">
+              <button
+                type="button"
+                onClick={() => setChannel('escrow')}
+                className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition ${
+                  channel === 'escrow' ? 'bg-[#9945FF] text-white' : 'text-gray-400'
+                }`}
+              >
+                <ShieldCheck className="w-3.5 h-3.5" />
+                Escrow
+              </button>
+              <button
+                type="button"
+                onClick={() => setChannel('inpay')}
+                className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition ${
+                  channel === 'inpay' ? 'bg-[#9945FF] text-white' : 'text-gray-400'
+                }`}
+              >
+                <Zap className="w-3.5 h-3.5" />
+                InPay
+              </button>
+            </div>
+
+            <div className="rounded-2xl bg-[#10121a] border border-[#1e2233] p-4 space-y-2">
+              <div className="flex items-center justify-between gap-3">
+                <span className="text-[11px] font-semibold uppercase tracking-wider text-gray-400">
+                  {channel === 'inpay' ? 'InPay .env' : 'Escrow embed snippet'}
+                </span>
+                <CopyButton
+                  value={channel === 'inpay' ? inpayEnv : escrowSnippet}
+                  label={channel === 'inpay' ? 'Copy .env' : 'Copy HTML'}
+                />
+              </div>
+              <pre className="text-[10px] leading-relaxed text-gray-300 bg-[#0a0c12] border border-[#1e2233] rounded-xl p-3 overflow-x-auto whitespace-pre-wrap break-all">
+                {channel === 'inpay' ? inpayEnv : escrowSnippet}
+              </pre>
+              <p className="text-[10px] text-gray-500">
+                {channel === 'inpay'
+                  ? 'Inline payment for your own checkout: no popup. Keep the secret key on your server only.'
+                  : 'Popup checkout for your storefront. The publishable key is safe in page HTML.'}
+              </p>
+            </div>
           </div>
 
           <button
@@ -202,7 +289,7 @@ export function MerchantOnboarding({ onReady }) {
                   className={inputClass}
                   value={form.name}
                   onChange={(e) => update('name', e.target.value)}
-                  placeholder="Acme Coffee Roasters"
+                  placeholder="Your store name"
                   required
                 />
               </Field>
@@ -212,7 +299,7 @@ export function MerchantOnboarding({ onReady }) {
                   className={inputClass}
                   value={form.email}
                   onChange={(e) => update('email', e.target.value)}
-                  placeholder="payments@acme.coffee"
+                  placeholder="contact@example.com"
                   required
                 />
               </Field>
@@ -226,7 +313,7 @@ export function MerchantOnboarding({ onReady }) {
                 className={inputClass}
                 value={form.domain}
                 onChange={(e) => update('domain', e.target.value)}
-                placeholder="shop.acme.coffee"
+                placeholder="yourstore.com"
                 required
               />
             </Field>
