@@ -18,6 +18,7 @@ import {
   Zap,
 } from 'lucide-react';
 import { CopyButton } from './widget/WidgetUi';
+import { PlatformNav } from './PlatformNav';
 
 const EMBED_SNIPPET = `<!-- EscrowPay merchant widget -->
 <script src="https://your-escrowpay.app/widget/v1.js" async></script>
@@ -92,7 +93,7 @@ const PLATFORMS = [
   },
   {
     icon: Code2,
-    label: 'Widget',
+    label: 'Widgets',
     title: 'Checkout on your own store',
     body: 'Add an escrow payment button with one script tag. Each product or service gets its own link, snippet and server-priced checkout.',
     cta: 'Set up the widget',
@@ -100,11 +101,11 @@ const PLATFORMS = [
   },
   {
     icon: ArrowLeftRight,
-    label: 'Exchange',
+    label: 'Escrow',
     title: 'Peer-to-peer token swaps',
     body: 'Swap SOL or tokens directly with another wallet. Escrow holds both sides until each party confirms the deal in the P2P evidence desk.',
-    cta: 'Open exchange',
-    href: '/app',
+    cta: 'Open escrow desk',
+    href: '/escrow',
   },
 ];
 
@@ -211,7 +212,8 @@ export function LandingPage() {
 
         {/* Header */}
         <header className="sticky top-0 z-40 border-b border-[#202436] bg-[#0b0c12]/80 backdrop-blur-md">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between gap-4">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="h-20 flex items-center justify-between gap-4">
             <Link href="/" className="flex items-center gap-2.5">
               <BrandMark />
               <div>
@@ -238,11 +240,14 @@ export function LandingPage() {
               <a href="#developers" className="px-3 py-2 rounded-lg hover:text-white hover:bg-white/5 transition">
                 Developers
               </a>
+              <Link href="/merchant" className="px-3 py-2 rounded-lg hover:text-white hover:bg-white/5 transition">
+                Widgets
+              </Link>
               <Link href="/marketplace" className="px-3 py-2 rounded-lg hover:text-white hover:bg-white/5 transition">
                 Marketplace
               </Link>
-              <Link href="/app" className="px-3 py-2 rounded-lg hover:text-white hover:bg-white/5 transition">
-                Exchange
+              <Link href="/escrow" className="px-3 py-2 rounded-lg hover:text-white hover:bg-white/5 transition">
+                Escrow
               </Link>
             </nav>
 
@@ -260,6 +265,11 @@ export function LandingPage() {
                 Get started
                 <ArrowRight className="w-3.5 h-3.5" />
               </Link>
+            </div>
+            </div>
+
+            <div className="md:hidden flex justify-center pb-2">
+              <PlatformNav compact />
             </div>
           </div>
         </header>
@@ -296,11 +306,11 @@ export function LandingPage() {
                     Browse the marketplace
                   </Link>
                   <Link
-                    href="/app"
+                    href="/escrow"
                     className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-5 h-12 rounded-xl bg-[#141624] border border-[#23273a] text-sm font-semibold text-gray-200 hover:bg-[#1a1e30] transition"
                   >
                     <ArrowLeftRight className="w-4 h-4" />
-                    Launch exchange
+                    Open escrow
                   </Link>
                 </div>
 
@@ -569,9 +579,9 @@ export function LandingPage() {
 
               <div className="space-y-2">
                 <p className="text-[11px] font-bold uppercase tracking-wider text-gray-300">Product</p>
-                <Link href="/app" className="block hover:text-white transition">Escrow app</Link>
+                <Link href="/escrow" className="block hover:text-white transition">Escrow</Link>
                 <Link href="/marketplace" className="block hover:text-white transition">Marketplace</Link>
-                <Link href="/merchant" className="block hover:text-white transition">Merchant dashboard</Link>
+                <Link href="/merchant" className="block hover:text-white transition">Widgets</Link>
                 <Link href="/signup" className="block hover:text-white transition">Create account</Link>
               </div>
 

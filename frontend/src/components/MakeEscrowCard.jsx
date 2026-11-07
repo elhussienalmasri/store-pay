@@ -25,9 +25,14 @@ export function MakeEscrowCard({ onEscrowCreated, openTxModal }) {
   const [amountB, setAmountB] = useState('');
 
   // Seed & Derivations
-  const [seed, setSeed] = useState(() => Math.floor(Math.random() * 10000000).toString());
+  // Generate the seed after mount so server and client markup match.
+  const [seed, setSeed] = useState('');
   const [escrowPdaPreview, setEscrowPdaPreview] = useState('');
   const [vaultAtaPreview, setVaultAtaPreview] = useState('');
+
+  useEffect(() => {
+    setSeed(Math.floor(Math.random() * 10000000).toString());
+  }, []);
 
   // UI state
   const [isLoadingDetails, setIsLoadingDetails] = useState(false);
@@ -264,7 +269,7 @@ export function MakeEscrowCard({ onEscrowCreated, openTxModal }) {
             title="Generate a new arbitrary seed"
           >
             <RefreshCw className="w-3 h-3" />
-            Seed: {seed}
+            Seed: {seed || '…'}
           </button>
         </div>
 
