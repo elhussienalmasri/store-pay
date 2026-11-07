@@ -17,6 +17,9 @@ pub mod anchor_escrow {
     pub fn take(ctx: Context<Take>) -> Result<()> {
         instructions::take::handler(ctx)
     }
+    pub fn take_same_mint(ctx: Context<TakeSameMint>) -> Result<()> {
+        instructions::take_same_mint::handler(ctx)
+    }
     pub fn refund(ctx: Context<Refund>) -> Result<()> {
         instructions::refund::handler(ctx)
     }
