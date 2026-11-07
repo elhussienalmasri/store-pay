@@ -1,0 +1,19 @@
+[toolchain]
+anchor_version = "1.2.2"
+package_manager = "yarn"
+
+[features]
+resolution = true
+skip-lint = false
+
+[programs.devnet]
+anchor_escrow = "2RUCd28fjPeXaLGFbgo45KEuFdMxDCpjuHreenC5WquF"
+
+[provider]
+cluster = "devnet"
+wallet = "~/.config/solana/id.json"
+
+[scripts]
+test = "cargo-build-sbf --arch v2 --manifest-path programs/anchor_escrow/Cargo.toml --sbf-out-dir target/deploy && cp target/idl/anchor_escrow.json idls/anchor_escrow.json && cargo test --manifest-path Cargo.toml --test anchor-litesvm-tests"
+
+[hooks]
