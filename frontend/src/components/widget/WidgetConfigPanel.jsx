@@ -7,13 +7,16 @@ import {
   Palette,
   Save,
   Sparkles,
+  Zap,
 } from 'lucide-react';
 import { createPaymentSession, updateMerchant } from '../../lib/merchantApi';
 import {
   buildApiExample,
   buildEmbedSnippet,
+  buildInPayConfig,
   formatFiatMinor,
 } from '../../lib/widgetCore.mjs';
+import { DEVNET_RPC_URL, PROGRAM_ID_STRING } from '../../lib/constants';
 import { CopyButton, Field, inputClass, Panel } from './WidgetUi';
 
 const MODE_OPTIONS = [
@@ -70,6 +73,15 @@ export function WidgetConfigPanel({ secret, merchant, products, onChanged }) {
     if (!appOrigin || !selectedProduct) return '';
     return buildApiExample({ appOrigin, productId: selectedProduct.id });
   }, [appOrigin, selectedProduct]);
+
+  const inpayConfig = useMemo(() => {
+    if (!appOrigin) return '';
+    return buildInPayConfig({
+      appOrigin,
+      programId: PROGRAM_ID_STRING,
+      rpcUrl: DEVNET_RPC_URL,
+    });
+  }, [appOrigin]);
 
   async function handleSave() {
     setBusy(true);
@@ -335,6 +347,25 @@ export function WidgetConfigPanel({ secret, merchant, products, onChanged }) {
           <p className="text-[11px] text-gray-500">
             Use your secret key on the server to create sessions for invoices or
             custom amounts, then redirect the buyer to the returned checkout URL.
+          </p>
+        </Panel>
+
+        <Panel className="space-y-3">
+          <div className="flex items-center justify-between">
+            <h3 className="text-sm font-bold text-white flex items-center gap-2">
+              <Zap className="w-4 h-4 text-[#14F195]" />
+              InPay inline config
+            </h3>
+            <CopyButton value={inpayConfig} label="Copy .env" />
+          </div>
+          <pre className="text-[10px] leading-relaxed text-gray-300 bg-[#0a0c12] border border-[#1e2233] rounded-xl p-3 overflow-x-auto whitespace-pre-wrap break-all">
+            {inpayConfig}
+          </pre>
+          <p className="text-[11px] text-gray-500">
+            Lets buyers pay inline on your site with Phantom — no popup window.
+            Your server calls {`{ESCROWPAY_INPAY_API_URL}/api/v1/inpay/sessions`} with
+            the secret key (escrow or "buyer chooses" mode only), and the returned
+            session is funded straight from your checkout page.
           </p>
         </Panel>
       </div>

@@ -18,6 +18,7 @@ import { getExplorerUrl, DEFAULT_DEVNET_TOKENS } from '../lib/constants';
 import { atomicToUi, getMintDetails, getWalletTokenBalance } from '../lib/tokens';
 import {
   createTakeInstruction,
+  createTakeSameMintInstruction,
   createRefundInstruction,
   parseAnchorError,
 } from '../lib/escrowProgram';
@@ -110,14 +111,22 @@ export function OpenEscrowsList({ escrows, isLoading, onRefresh, openTxModal }) 
         message: 'Please approve the swap transaction in your Phantom wallet.',
       });
 
-      const ix = createTakeInstruction({
-        taker: publicKey,
-        maker: escrow.maker,
-        seed: escrow.seedBigInt,
-        mintA: escrow.mintA,
-        mintB: escrow.mintB,
-        tokenProgram: escrow.tokenProgramId,
-      });
+      const ix = escrow.mintA.equals(escrow.mintB)
+        ? createTakeSameMintInstruction({
+            taker: publicKey,
+            maker: escrow.maker,
+            seed: escrow.seedBigInt,
+            mint: escrow.mintA,
+            tokenProgram: escrow.tokenProgramId,
+          })
+        : createTakeInstruction({
+            taker: publicKey,
+            maker: escrow.maker,
+            seed: escrow.seedBigInt,
+            mintA: escrow.mintA,
+            mintB: escrow.mintB,
+            tokenProgram: escrow.tokenProgramId,
+          });
 
       const transaction = new Transaction().add(ix);
       const { blockhash, lastValidBlockHeight } = await connection.getLatestBlockhash('confirmed');

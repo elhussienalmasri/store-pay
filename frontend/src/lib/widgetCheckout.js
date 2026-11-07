@@ -12,7 +12,7 @@ import {
 import {
   createMakeInstruction,
   createRefundInstruction,
-  createTakeInstruction,
+  createTakeSameMintInstruction,
   deriveEscrowPda,
   parseAnchorError,
 } from './escrowProgram';
@@ -187,6 +187,8 @@ export async function buildClaimTransaction({ connection, merchant, session }) {
   if (!session.escrowAddress) throw new Error('Order has no escrow account');
 
   const mint = new PublicKey(WSOL_MINT);
+  const buyer = new PublicKey(session.buyer);
+  const selfClaim = merchant.equals(buyer);
   const merchantWsol = getAssociatedTokenAddressSync(
     mint,
     merchant,
@@ -215,30 +217,43 @@ export async function buildClaimTransaction({ connection, merchant, session }) {
     needsWrap = BigInt(balance.value.amount) < 1n;
   }
 
-  if (needsWrap) {
-    // The escrow asks for a 1-lamport "receive" amount, so the claiming wallet
-    // needs a tiny wrapped-SOL balance before the take instruction runs.
-    const wrapLamports = 10_000_000; // 0.01 SOL
+  if (selfClaim) {
+    // EscrowPay escrows use WSOL on both sides, so a wallet cannot claim from
+    // itself (duplicate mutable accounts). Refund closes the escrow to the
+    // buyer, which is the merchant here.
     transaction.add(
-      SystemProgram.transfer({
-        fromPubkey: merchant,
-        toPubkey: merchantWsol,
-        lamports: wrapLamports,
-      }),
-      createSyncNativeInstruction(merchantWsol, TOKEN_PROGRAM_ID)
+      createRefundInstruction({
+        maker: merchant,
+        seed: session.seed,
+        mintA: mint,
+        tokenProgram: TOKEN_PROGRAM_ID,
+      })
+    );
+  } else {
+    if (needsWrap) {
+      // The escrow asks for a 1-lamport "receive" amount, so the claiming wallet
+      // needs a tiny wrapped-SOL balance before the take instruction runs.
+      const wrapLamports = 10_000_000; // 0.01 SOL
+      transaction.add(
+        SystemProgram.transfer({
+          fromPubkey: merchant,
+          toPubkey: merchantWsol,
+          lamports: wrapLamports,
+        }),
+        createSyncNativeInstruction(merchantWsol, TOKEN_PROGRAM_ID)
+      );
+    }
+
+    transaction.add(
+      createTakeSameMintInstruction({
+        taker: merchant,
+        maker: buyer,
+        seed: session.seed,
+        mint,
+        tokenProgram: TOKEN_PROGRAM_ID,
+      })
     );
   }
-
-  transaction.add(
-    createTakeInstruction({
-      taker: merchant,
-      maker: new PublicKey(session.buyer),
-      seed: session.seed,
-      mintA: mint,
-      mintB: mint,
-      tokenProgram: TOKEN_PROGRAM_ID,
-    })
-  );
 
   // Unwrap the settled WSOL back into native SOL in the same transaction.
   transaction.add(

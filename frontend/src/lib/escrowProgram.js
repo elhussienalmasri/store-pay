@@ -174,6 +174,65 @@ export function createTakeInstruction({
 }
 
 /**
+ * Build the `take_same_mint` instruction
+ *
+ * Used when mintA === mintB: `take` would pass the taker's token account twice
+ * (taker_ata_a / taker_ata_b), which Anchor rejects with 2040.
+ * Account order matches TakeSameMint in the program.
+ */
+export function createTakeSameMintInstruction({
+  taker,
+  maker,
+  seed,
+  mint,
+  tokenProgram = TOKEN_PROGRAM_ID,
+}) {
+  const takerPubkey = typeof taker === 'string' ? new PublicKey(taker) : taker;
+  const makerPubkey = typeof maker === 'string' ? new PublicKey(maker) : maker;
+  const mintPubkey = typeof mint === 'string' ? new PublicKey(mint) : mint;
+  const tokenProgramId = typeof tokenProgram === 'string' ? new PublicKey(tokenProgram) : tokenProgram;
+
+  const { escrowPda } = deriveEscrowPda(makerPubkey, seed);
+  const vault = deriveVaultAta(escrowPda, mintPubkey, tokenProgramId);
+
+  const takerAta = getAssociatedTokenAddressSync(
+    mintPubkey,
+    takerPubkey,
+    true,
+    tokenProgramId,
+    ASSOCIATED_TOKEN_PROGRAM_ID
+  );
+  const makerAta = getAssociatedTokenAddressSync(
+    mintPubkey,
+    makerPubkey,
+    true,
+    tokenProgramId,
+    ASSOCIATED_TOKEN_PROGRAM_ID
+  );
+
+  const data = Buffer.from(INSTRUCTION_DISCRIMINATORS.take_same_mint);
+
+  const keys = [
+    { pubkey: takerPubkey, isSigner: true, isWritable: true },
+    { pubkey: makerPubkey, isSigner: false, isWritable: true },
+    { pubkey: escrowPda, isSigner: false, isWritable: true },
+    { pubkey: mintPubkey, isSigner: false, isWritable: false },
+    { pubkey: vault, isSigner: false, isWritable: true },
+    { pubkey: takerAta, isSigner: false, isWritable: true },
+    { pubkey: makerAta, isSigner: false, isWritable: true },
+    { pubkey: ASSOCIATED_TOKEN_PROGRAM_ID, isSigner: false, isWritable: false },
+    { pubkey: tokenProgramId, isSigner: false, isWritable: false },
+    { pubkey: SYSTEM_PROGRAM_ID, isSigner: false, isWritable: false },
+  ];
+
+  return new TransactionInstruction({
+    programId: PROGRAM_ID,
+    keys,
+    data,
+  });
+}
+
+/**
  * Build the `refund` instruction
  */
 export function createRefundInstruction({
@@ -331,6 +390,10 @@ export function parseAnchorError(error) {
     if (message.includes(code) || message.includes(`0x${Number(code).toString(16)}`)) {
       return desc;
     }
+  }
+
+  if (/InstructionFallbackNotFound|Instruction fallback not found|0x65/.test(message)) {
+    return 'The escrow program deployed on devnet does not include the same-mint claim instruction yet. Redeploy the updated program, or refund this order from the buyer checkout link.';
   }
 
   if (message.includes('User rejected the request') || message.includes('rejected')) {

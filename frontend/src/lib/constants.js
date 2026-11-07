@@ -21,6 +21,7 @@ export const INSTRUCTION_DISCRIMINATORS = {
   make: [138, 227, 232, 77, 223, 166, 96, 197],
   refund: [2, 96, 183, 251, 63, 208, 46, 46],
   take: [149, 226, 52, 104, 6, 142, 230, 39],
+  take_same_mint: [167, 58, 207, 0, 89, 104, 249, 221],
 };
 
 // Known Devnet Test Mints (SPL Token standard)

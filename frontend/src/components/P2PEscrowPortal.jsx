@@ -20,7 +20,7 @@ import {
 } from 'lucide-react';
 import { atomicToUi, getMintDetails } from '../lib/tokens';
 import { getExplorerUrl, DEFAULT_DEVNET_TOKENS } from '../lib/constants';
-import { createTakeInstruction, createRefundInstruction, parseAnchorError } from '../lib/escrowProgram';
+import { createTakeInstruction, createTakeSameMintInstruction, createRefundInstruction, parseAnchorError } from '../lib/escrowProgram';
 
 const STORAGE_KEY = 'solana_p2p_orders_v1';
 
@@ -218,14 +218,22 @@ export function P2PEscrowPortal({ openEscrows, openTxModal, onRefresh }) {
         throw new Error('Escrow account is no longer open on-chain (it may have been fulfilled or refunded).');
       }
 
-      const ix = createTakeInstruction({
-        taker: publicKey,
-        maker: escrowObj.maker,
-        seed: escrowObj.seedBigInt,
-        mintA: escrowObj.mintA,
-        mintB: escrowObj.mintB,
-        tokenProgram: escrowObj.tokenProgramId,
-      });
+      const ix = escrowObj.mintA.equals(escrowObj.mintB)
+        ? createTakeSameMintInstruction({
+            taker: publicKey,
+            maker: escrowObj.maker,
+            seed: escrowObj.seedBigInt,
+            mint: escrowObj.mintA,
+            tokenProgram: escrowObj.tokenProgramId,
+          })
+        : createTakeInstruction({
+            taker: publicKey,
+            maker: escrowObj.maker,
+            seed: escrowObj.seedBigInt,
+            mintA: escrowObj.mintA,
+            mintB: escrowObj.mintB,
+            tokenProgram: escrowObj.tokenProgramId,
+          });
 
       const transaction = new Transaction().add(ix);
       const { blockhash, lastValidBlockHeight } = await connection.getLatestBlockhash('confirmed');
