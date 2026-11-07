@@ -1,0 +1,162 @@
+{
+  "categories": [
+    { "slug": "headphones", "name": "Headphones" },
+    { "slug": "earbuds", "name": "Earbuds" },
+    { "slug": "watches", "name": "Smart Watches" },
+    { "slug": "laptops", "name": "Laptops" },
+    { "slug": "tablets", "name": "Tablets" },
+    { "slug": "smart-phones", "name": "Phones" },
+    { "slug": "cameras", "name": "Cameras" },
+    { "slug": "speakers", "name": "Speakers" },
+    { "slug": "juicers", "name": "Juicers" },
+    { "slug": "mixer-grinders", "name": "Mixer Grinders" },
+    { "slug": "trimmers", "name": "Trimmers" },
+    { "slug": "phone-gimbals", "name": "Gimbals" }
+  ],
+  "products": [
+    {
+      "slug": "wireless-headphones-demo",
+      "title": "Wireless Headphones",
+      "category": "headphones",
+      "manufacturer": "Sony",
+      "priceCents": 8900,
+      "rating": 3,
+      "inStock": 1,
+      "image": "/products/product9.webp",
+      "description": "Over-ear wireless headphones with active noise isolation and a 30-hour battery. Folds flat into the included pouch and pairs with two devices at once.",
+      "specs": ["Active noise isolation", "30 h battery life", "Bluetooth multipoint", "USB-C charging"]
+    },
+    {
+      "slug": "wireless-earbuds-demo",
+      "title": "Wireless Earbuds",
+      "category": "earbuds",
+      "manufacturer": "Samsung",
+      "priceCents": 7400,
+      "rating": 3,
+      "inStock": 1,
+      "image": "/products/product6.webp",
+      "description": "Compact true-wireless earbuds with sweat-resistant shells and a charging case that adds three extra refills on the go.",
+      "specs": ["IPX5 sweat resistance", "6 h + 18 h from case", "Touch controls", "Low-latency game mode"]
+    },
+    {
+      "slug": "slow-juicer-demo",
+      "title": "Slow Juicer",
+      "category": "juicers",
+      "manufacturer": "Bosch",
+      "priceCents": 6900,
+      "rating": 5,
+      "inStock": 1,
+      "image": "/products/product8.webp",
+      "description": "Cold-press juicer that turns fruit and leafy greens into juice at low speed, so the pulp stays dry and the jug is dishwasher safe.",
+      "specs": ["80 rpm cold press", "Dual feeding chute", "Dishwasher-safe parts", "1 L juice capacity"]
+    },
+    {
+      "slug": "smart-watch-demo",
+      "title": "Smart Watch",
+      "category": "watches",
+      "manufacturer": "Samsung",
+      "priceCents": 6400,
+      "rating": 3,
+      "inStock": 1,
+      "image": "/products/product10.webp",
+      "description": "AMOLED smart watch with heart-rate and sleep tracking, on-screen workouts and interchangeable 22 mm straps.",
+      "specs": ["1.4 in AMOLED display", "Heart rate + SpO2", "7-day battery", "5 ATM water resistance"]
+    },
+    {
+      "slug": "mens-trimmer-demo",
+      "title": "Men's Trimmer",
+      "category": "trimmers",
+      "manufacturer": "Gillete",
+      "priceCents": 5400,
+      "rating": 5,
+      "inStock": 0,
+      "image": "/products/product12.webp",
+      "description": "Self-sharpening steel trimmer with five comb lengths and a full runtime charge in one hour on USB-C.",
+      "specs": ["Self-sharpening blades", "5 length combs", "60 min cordless runtime", "Washable head"]
+    },
+    {
+      "slug": "tablet-keyboard-demo",
+      "title": "Tablet Keyboard",
+      "category": "tablets",
+      "manufacturer": "Samsung",
+      "priceCents": 5200,
+      "rating": 4,
+      "inStock": 1,
+      "image": "/products/product5.webp",
+      "description": "Bluetooth keyboard cover for 11-inch tablets with a built-in trackpad and a fold-flat stand for landscape typing.",
+      "specs": ["Built-in trackpad", "Bluetooth 5.0", "Fits 11 in tablets", "Fold-flat stand"]
+    },
+    {
+      "slug": "notebook-horizon-demo",
+      "title": "Notebook Horizon",
+      "category": "laptops",
+      "manufacturer": "HP",
+      "priceCents": 5200,
+      "rating": 5,
+      "inStock": 1,
+      "image": "/products/product11.webp",
+      "description": "Everyday 15.6-inch laptop for browsing, documents and streaming, with a backlit keyboard and fast NVMe storage.",
+      "specs": ["15.6 in FHD display", "16 GB RAM", "512 GB NVMe SSD", "Backlit keyboard"]
+    },
+    {
+      "slug": "party-speakers-demo",
+      "title": "Party Speakers",
+      "category": "speakers",
+      "manufacturer": "SOWO",
+      "priceCents": 3500,
+      "rating": 5,
+      "inStock": 1,
+      "image": "/products/product7.webp",
+      "description": "Pair of portable party speakers with light ring, FM radio and enough output for an outdoor room. Carry handles on both shells.",
+      "specs": ["2 x 40 W output", "LED light ring", "Bluetooth + AUX + USB", "8 h battery"]
+    },
+    {
+      "slug": "mixed-grinder-demo",
+      "title": "Mixer Grinder",
+      "category": "mixer-grinders",
+      "manufacturer": "ZunVolt",
+      "priceCents": 2500,
+      "rating": 4,
+      "inStock": 1,
+      "image": "/products/product3.webp",
+      "description": "Three-jar countertop grinder for wet batter, dry spices and chopping, with stainless steel blades and an overload cut-off.",
+      "specs": ["3 stainless jars", "750 W motor", "Overload protection", "Suction-cup base"]
+    },
+    {
+      "slug": "slr-camera-demo",
+      "title": "SLR Camera",
+      "category": "cameras",
+      "manufacturer": "Canon",
+      "priceCents": 2400,
+      "rating": 0,
+      "inStock": 0,
+      "image": "/products/product2.webp",
+      "description": "Entry SLR body with kit zoom, optical viewfinder and raw capture — the starting point for interchangeable-lens photography.",
+      "specs": ["18 MP sensor", "Kit 18-55 mm lens", "Optical viewfinder", "RAW + JPEG"]
+    },
+    {
+      "slug": "smart-phone-demo",
+      "title": "Smart Phone",
+      "category": "smart-phones",
+      "manufacturer": "Samsung",
+      "priceCents": 2200,
+      "rating": 5,
+      "inStock": 0,
+      "image": "/products/product1.webp",
+      "description": "Budget smartphone with a 6.5-inch screen, dual rear cameras and a 5000 mAh battery that holds two days of light use.",
+      "specs": ["6.5 in HD+ display", "Dual rear camera", "5000 mAh battery", "128 GB storage"]
+    },
+    {
+      "slug": "phone-gimbal-demo",
+      "title": "Phone Gimbal",
+      "category": "phone-gimbals",
+      "manufacturer": "Samsung",
+      "priceCents": 2100,
+      "rating": 5,
+      "inStock": 1,
+      "image": "/products/product4.webp",
+      "description": "Three-axis stabiliser for phones with face tracking, a foldable arm and a control wheel for focus and zoom while walking.",
+      "specs": ["3-axis stabilisation", "Face + object tracking", "Foldable for travel", "12 h battery"]
+    }
+  ]
+}
