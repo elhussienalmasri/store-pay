@@ -84,7 +84,7 @@ export default async function handler(req, res) {
       unitPriceMinor = product.priceMinor;
       currency = product.currency;
     } else {
-      if (authenticatedAs !== 'secret') {
+      if (authenticatedAs === 'publishable') {
         throw new ApiError(400, 'productId is required when using a publishable key');
       }
       const customAmount = Number(req.body?.customAmountMinor);

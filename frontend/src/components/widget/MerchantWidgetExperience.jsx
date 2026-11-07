@@ -5,24 +5,23 @@ import {
   Code2,
   LayoutDashboard,
   Loader2,
-  LogOut,
   Package,
+  PlusCircle,
   Receipt,
   RefreshCw,
   Settings,
-  ShieldCheck,
-  Sparkles,
   Zap,
 } from 'lucide-react';
 import {
   clearStoredSecret,
   getMerchant,
   getStoredSecret,
+  logoutMerchant,
 } from '../../lib/merchantApi';
-import { MerchantOnboarding } from './MerchantOnboarding';
 import { OverviewPanel } from './OverviewPanel';
 import { ProductsPanel } from './ProductsPanel';
 import { WidgetConfigPanel } from './WidgetConfigPanel';
+import { MerchantOnboarding } from './MerchantOnboarding';
 import { OrdersPanel } from './OrdersPanel';
 import { SettingsPanel } from './SettingsPanel';
 import { CopyButton, Panel } from './WidgetUi';
@@ -35,8 +34,9 @@ const WalletMultiButton = dynamic(
 const SECTIONS = [
   { id: 'overview', label: 'Overview', icon: LayoutDashboard },
   { id: 'products', label: 'Products', icon: Package },
-  { id: 'widget', label: 'Widget', icon: Code2 },
+  { id: 'widget', label: 'Payment', icon: Code2 },
   { id: 'orders', label: 'Orders', icon: Receipt },
+  { id: 'create-store', label: 'Widget Payment', icon: PlusCircle },
   { id: 'settings', label: 'Settings', icon: Settings },
 ];
 
@@ -58,37 +58,47 @@ export function MerchantWidgetExperience() {
   const [section, setSection] = useState('overview');
 
   useEffect(() => {
+    let cancelled = false;
     const stored = getStoredSecret();
     setSecret(stored);
-    setReady(true);
-
-    if (!stored) {
-      setLoading(false);
-      return;
-    }
-
-    let cancelled = false;
     setLoading(true);
-    getMerchant(stored)
-      .then((payload) => {
-        if (!cancelled) {
-          setData(payload);
-          setError('');
+
+    (async () => {
+      try {
+        let payload;
+        try {
+          payload = await getMerchant(stored || undefined);
+        } catch (err) {
+          // A stale local key should not hide a valid session cookie.
+          if (err.status === 401 && stored) {
+            clearStoredSecret();
+            if (!cancelled) setSecret(null);
+            payload = await getMerchant();
+          } else {
+            throw err;
+          }
         }
-      })
-      .catch((err) => {
+        if (cancelled) return;
+        setData(payload);
+        setError('');
+      } catch (err) {
         if (cancelled) return;
         if (err.status === 401) {
-          clearStoredSecret();
-          setSecret(null);
-          setError('Your saved merchant key is no longer valid. Create a store or paste a key again.');
+          if (stored) {
+            clearStoredSecret();
+            setSecret(null);
+          }
+          setError('');
         } else {
           setError(err.message);
         }
-      })
-      .finally(() => {
-        if (!cancelled) setLoading(false);
-      });
+      } finally {
+        if (!cancelled) {
+          setLoading(false);
+          setReady(true);
+        }
+      }
+    })();
 
     return () => {
       cancelled = true;
@@ -96,10 +106,20 @@ export function MerchantWidgetExperience() {
   }, []);
 
   const refresh = useCallback(async () => {
-    if (!secret) return;
     setLoading(true);
     try {
-      const payload = await getMerchant(secret);
+      let payload;
+      try {
+        payload = await getMerchant(secret || undefined);
+      } catch (err) {
+        if (err.status === 401 && secret) {
+          clearStoredSecret();
+          setSecret(null);
+          payload = await getMerchant();
+        } else {
+          throw err;
+        }
+      }
       setData(payload);
       setError('');
     } catch (err) {
@@ -107,7 +127,7 @@ export function MerchantWidgetExperience() {
         clearStoredSecret();
         setSecret(null);
         setData(null);
-        setError('Your saved merchant key is no longer valid. Create a store or paste a key again.');
+        setError('');
       } else {
         setError(err.message);
       }
@@ -116,17 +136,24 @@ export function MerchantWidgetExperience() {
     }
   }, [secret]);
 
-  function handleSignOut() {
-    clearStoredSecret();
-    setSecret(null);
-    setData(null);
-    setError('');
-    setSection('overview');
+  async function handleSecretChanged(newSecret) {
+    setSecret(newSecret);
+    setLoading(true);
+    try {
+      const payload = await getMerchant(newSecret);
+      setData(payload);
+      setError('');
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
   }
 
   async function handleOnboarded(merchant, secretKey) {
     setSecret(secretKey);
     setError('');
+    setSection('overview');
     setLoading(true);
     try {
       const payload = await getMerchant(secretKey);
@@ -138,22 +165,21 @@ export function MerchantWidgetExperience() {
     }
   }
 
-  if (!ready) {
-    return <CenteredLoader label="Loading merchant workspace…" />;
+  async function handleSignOut() {
+    clearStoredSecret();
+    try {
+      await logoutMerchant();
+    } catch (err) {
+      console.warn('Failed to clear session:', err);
+    }
+    setSecret(null);
+    setData(null);
+    setError('');
+    setSection('overview');
   }
 
-  if (!secret) {
-    return (
-      <div className="space-y-5">
-        {error && (
-          <div className="max-w-xl mx-auto rounded-2xl border border-amber-500/30 bg-amber-500/10 p-3 text-xs text-amber-200 flex items-start gap-2">
-            <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
-            {error}
-          </div>
-        )}
-        <MerchantOnboarding onReady={handleOnboarded} />
-      </div>
-    );
+  if (!ready) {
+    return <CenteredLoader label="Loading merchant workspace…" />;
   }
 
   if (!data) {
@@ -165,25 +191,15 @@ export function MerchantWidgetExperience() {
       );
     }
     return (
-      <Panel className="max-w-xl mx-auto space-y-4 text-center">
-        <AlertTriangle className="w-9 h-9 text-amber-400 mx-auto" />
-        <h2 className="text-lg font-black text-white">Could not load your store</h2>
-        <p className="text-xs text-gray-400 break-words">{error || 'Unknown error'}</p>
-        <div className="flex justify-center gap-2">
-          <button
-            onClick={refresh}
-            className="px-4 h-10 rounded-xl bg-gradient-to-r from-[#9945FF] to-[#14F195] text-[#0b0c12] text-xs font-bold"
-          >
-            Try again
-          </button>
-          <button
-            onClick={handleSignOut}
-            className="px-4 h-10 rounded-xl bg-[#181b28] border border-[#2a2f45] text-xs font-semibold text-gray-300"
-          >
-            Use another key
-          </button>
-        </div>
-      </Panel>
+      <div className="space-y-5">
+        {error && (
+          <div className="max-w-xl mx-auto rounded-2xl border border-amber-500/30 bg-amber-500/10 p-3 text-xs text-amber-200 flex items-start gap-2">
+            <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
+            {error}
+          </div>
+        )}
+        <MerchantOnboarding onReady={handleOnboarded} />
+      </div>
     );
   }
 
@@ -210,7 +226,7 @@ export function MerchantWidgetExperience() {
                 <p className="text-[11px] text-gray-500 flex flex-wrap items-center gap-x-2 gap-y-0.5">
                   <span className="capitalize">{merchant.plan} plan</span>
                   <span>•</span>
-                  <span>{products.length} product(s)</span>
+                  <span>{products.length} item(s)</span>
                   <span>•</span>
                   <span>{stats?.counts?.funded || 0} awaiting claim</span>
                 </p>
@@ -228,6 +244,13 @@ export function MerchantWidgetExperience() {
 
           <div className="flex items-center gap-2">
             <button
+              onClick={() => setSection('widget')}
+              className="hidden sm:inline-flex items-center gap-1.5 px-3 h-10 rounded-xl bg-gradient-to-r from-[#9945FF] to-[#14F195] text-[#0b0c12] text-xs font-bold"
+            >
+              <Code2 className="w-3.5 h-3.5" />
+              Payment
+            </button>
+            <button
               onClick={refresh}
               disabled={loading}
               className="p-2.5 rounded-xl bg-[#141624] border border-[#23273a] text-gray-400 hover:text-white disabled:opacity-50"
@@ -238,13 +261,6 @@ export function MerchantWidgetExperience() {
             <div className="solana-wallet-custom">
               <WalletMultiButton className="!bg-[#1a1d2b] !border !border-[#2b3048] !text-white !font-semibold !text-xs !rounded-xl !h-10 !px-4" />
             </div>
-            <button
-              onClick={handleSignOut}
-              className="p-2.5 rounded-xl bg-[#141624] border border-[#23273a] text-gray-400 hover:text-red-300"
-              title="Sign out of this device"
-            >
-              <LogOut className="w-4 h-4" />
-            </button>
           </div>
         </div>
 
@@ -311,26 +327,20 @@ export function MerchantWidgetExperience() {
         />
       )}
 
+      {activeSection === 'create-store' && (
+        <MerchantOnboarding onReady={handleOnboarded} />
+      )}
+
       {activeSection === 'settings' && (
         <SettingsPanel
           secret={secret}
           merchant={merchant}
           onChanged={refresh}
           onSignOut={handleSignOut}
+          onSecretChanged={handleSecretChanged}
         />
       )}
 
-      <div className="flex flex-wrap items-center justify-center gap-x-3 gap-y-1 text-[10px] text-gray-600 pb-2">
-        <span className="inline-flex items-center gap-1">
-          <ShieldCheck className="w-3 h-3" />
-          Non-custodial escrow on Solana Devnet
-        </span>
-        <span>•</span>
-        <span className="inline-flex items-center gap-1">
-          <Sparkles className="w-3 h-3" />
-          Prices and quotes are computed server-side
-        </span>
-      </div>
     </div>
   );
 }

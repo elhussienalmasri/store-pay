@@ -35,7 +35,7 @@ export function OverviewPanel({ merchant, stats, products, onNavigate }) {
       title: 'Copy the embed snippet',
       detail: 'Paste the script and button into your storefront, or create a payment link.',
       done: false,
-      action: 'Open widget studio',
+      action: 'Payment',
     },
     {
       id: 'orders',
@@ -174,7 +174,7 @@ export function OverviewPanel({ merchant, stats, products, onNavigate }) {
               >
                 <Code2 className="w-4 h-4 text-[#c4a3ff] mb-1.5" />
                 <span className="block text-[11px] font-semibold text-white">
-                  Get snippet
+                  Payment
                 </span>
               </button>
               <button

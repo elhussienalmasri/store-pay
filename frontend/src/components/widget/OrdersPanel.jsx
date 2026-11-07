@@ -170,8 +170,8 @@ export function OrdersPanel({ secret, merchant, onChanged }) {
           <div className="rounded-2xl border border-dashed border-[#2a2f45] p-10 text-center space-y-2">
             <p className="text-sm font-semibold text-white">No orders yet</p>
             <p className="text-xs text-gray-500">
-              Create a payment link in the Widget tab or embed the snippet on your
-              storefront to take the first escrow payment.
+              Create a payment link in the Payment tab or embed the snippet on
+              your storefront to take the first escrow payment.
             </p>
           </div>
         ) : (

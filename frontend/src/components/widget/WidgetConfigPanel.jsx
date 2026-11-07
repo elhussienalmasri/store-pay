@@ -83,6 +83,20 @@ export function WidgetConfigPanel({ secret, merchant, products, onChanged }) {
     });
   }, [appOrigin]);
 
+  const catalogExample = useMemo(() => {
+    if (!appOrigin) return '';
+    return [
+      '// Browser-safe: returns every active product in your catalog',
+      `const res = await fetch('${appOrigin}/api/v1/products?publishableKey=${merchant.publishableKey}');`,
+      'const { products } = await res.json();',
+      '',
+      '// Render one button per product (each product needs its own snippet)',
+      'for (const product of products) {',
+      '  console.log(product.id, product.name, product.priceDisplay);',
+      '}',
+    ].join('\n');
+  }, [appOrigin, merchant.publishableKey]);
+
   async function handleSave() {
     setBusy(true);
     setError('');
@@ -124,9 +138,10 @@ export function WidgetConfigPanel({ secret, merchant, products, onChanged }) {
       <Panel className="space-y-4">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
-            <h2 className="text-lg font-black text-white">Widget studio</h2>
+            <h2 className="text-lg font-black text-white">Payment</h2>
             <p className="text-xs text-gray-400 mt-0.5">
-              Configure the button, preview it, then copy the embed snippet.
+              Pick an item, set the button and mode, then copy the embed snippet or
+              create a hosted payment link.
             </p>
           </div>
           <div className="flex items-center gap-2 text-[11px]">
@@ -186,7 +201,7 @@ export function WidgetConfigPanel({ secret, merchant, products, onChanged }) {
             </Field>
 
             <div className="grid grid-cols-2 gap-3">
-              <Field label="Snippet product">
+              <Field label={`Snippet product (${products.length})`}>
                 <select
                   className={inputClass}
                   value={productId}
@@ -212,6 +227,11 @@ export function WidgetConfigPanel({ secret, merchant, products, onChanged }) {
                 />
               </Field>
             </div>
+            <p className="text-[11px] text-gray-500 -mt-1">
+              The selector lists your whole catalog and previews one product at a
+              time. Each product gets its own embed snippet — use the Catalog API
+              below to load them all into a storefront.
+            </p>
 
             {error && (
               <div className="rounded-xl border border-red-500/30 bg-red-500/10 p-3 text-xs text-red-200">
@@ -226,7 +246,7 @@ export function WidgetConfigPanel({ secret, merchant, products, onChanged }) {
                 className="flex-1 h-10 rounded-xl bg-gradient-to-r from-[#9945FF] to-[#14F195] text-[#0b0c12] text-xs font-bold disabled:opacity-50 flex items-center justify-center gap-1.5"
               >
                 <Save className="w-3.5 h-3.5" />
-                {busy ? 'Saving…' : saved ? 'Saved' : 'Save widget settings'}
+                {busy ? 'Saving…' : saved ? 'Saved' : 'Save settings'}
               </button>
               <button
                 onClick={handleCreateLink}
@@ -366,6 +386,24 @@ export function WidgetConfigPanel({ secret, merchant, products, onChanged }) {
             Your server calls {`{ESCROWPAY_INPAY_API_URL}/api/v1/inpay/sessions`} with
             the secret key (escrow or "buyer chooses" mode only), and the returned
             session is funded straight from your checkout page.
+          </p>
+        </Panel>
+
+        <Panel className="space-y-3">
+          <div className="flex items-center justify-between">
+            <h3 className="text-sm font-bold text-white flex items-center gap-2">
+              <Sparkles className="w-4 h-4 text-[#c4a3ff]" />
+              Catalog API
+            </h3>
+            <CopyButton value={catalogExample} label="Copy JS" />
+          </div>
+          <pre className="text-[10px] leading-relaxed text-gray-300 bg-[#0a0c12] border border-[#1e2233] rounded-xl p-3 overflow-x-auto whitespace-pre-wrap break-all">
+            {catalogExample}
+          </pre>
+          <p className="text-[11px] text-gray-500">
+            Uses your publishable key and is origin-checked against your registered
+            domains. Only active products are returned; disabled products stay hidden
+            from buyers.
           </p>
         </Panel>
       </div>
