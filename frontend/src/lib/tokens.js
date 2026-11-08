@@ -6,7 +6,7 @@ import {
   TOKEN_2022_PROGRAM_ID as SPL_TOKEN_2022_PROGRAM_ID,
   ASSOCIATED_TOKEN_PROGRAM_ID
 } from '@solana/spl-token';
-import { TOKEN_PROGRAM_ID, TOKEN_2022_PROGRAM_ID } from './constants';
+import { TOKEN_PROGRAM_ID, TOKEN_2022_PROGRAM_ID, WSOL_MINT, WSOL_ATA_RENT_LAMPORTS } from './constants';
 
 /**
  * Inspect a token mint to determine its owner program (SPL vs 2022) and decimals.
@@ -92,6 +92,31 @@ export async function getWalletTokenBalance(connection, walletPubkey, mintPubkey
       exists: false,
     };
   }
+}
+
+/**
+ * SOL the wallet can actually commit to an escrow: plain SOL plus wrapped SOL already held,
+ * minus the rent a brand new wrapped-SOL account needs.
+ */
+export async function getWalletSolBalance(connection, walletPubkey) {
+  const wallet = typeof walletPubkey === 'string' ? new PublicKey(walletPubkey) : walletPubkey;
+  const mint = new PublicKey(WSOL_MINT);
+
+  const [lamports, wrapped] = await Promise.all([
+    connection.getBalance(wallet).catch(() => 0),
+    getWalletTokenBalance(connection, wallet, mint, TOKEN_PROGRAM_ID),
+  ]);
+
+  let atomic = BigInt(lamports) + wrapped.atomicAmount;
+  if (!wrapped.exists) atomic -= BigInt(WSOL_ATA_RENT_LAMPORTS);
+  if (atomic < 0n) atomic = 0n;
+
+  return {
+    atomicAmount: atomic,
+    uiAmount: atomicToUi(atomic, 9),
+    solAmount: atomicToUi(BigInt(lamports), 9),
+    wrappedAmount: wrapped.uiAmount,
+  };
 }
 
 /**

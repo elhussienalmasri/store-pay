@@ -1,9 +1,12 @@
 import {
   PublicKey,
+  SystemProgram,
   TransactionInstruction,
   Transaction,
 } from '@solana/web3.js';
 import {
+  createAssociatedTokenAccountIdempotentInstruction,
+  createSyncNativeInstruction,
   getAssociatedTokenAddressSync,
   unpackAccount,
 } from '@solana/spl-token';
@@ -12,11 +15,54 @@ import {
   ASSOCIATED_TOKEN_PROGRAM_ID,
   SYSTEM_PROGRAM_ID,
   TOKEN_PROGRAM_ID,
+  WSOL_MINT,
   ESCROW_SEED_PREFIX,
   ESCROW_ACCOUNT_SIZE,
   INSTRUCTION_DISCRIMINATORS,
   ERROR_MESSAGES,
 } from './constants';
+
+/**
+ * The vault program only moves SPL tokens, so SOL is handled by wrapping it into the
+ * seller's own wrapped-SOL account inside the very same transaction.
+ */
+export function isSolMint(mint) {
+  const value = typeof mint === 'string' ? mint : mint?.toBase58?.();
+  return value === WSOL_MINT;
+}
+
+/**
+ * Instructions that leave `amountAtomic` of wrapped SOL ready in the wallet's own account.
+ * Pass 0n to only make sure the account exists. The account itself keeps the rent-exempt
+ * minimum, which stays behind as wrapped SOL and can be unwrapped by the wallet later.
+ */
+export function buildSolWrapInstructions({ wallet, amountAtomic, tokenProgram = TOKEN_PROGRAM_ID }) {
+  const owner = typeof wallet === 'string' ? new PublicKey(wallet) : wallet;
+  const mint = new PublicKey(WSOL_MINT);
+  const tokenProgramId = typeof tokenProgram === 'string' ? new PublicKey(tokenProgram) : tokenProgram;
+  const ata = getAssociatedTokenAddressSync(mint, owner, false, tokenProgramId, ASSOCIATED_TOKEN_PROGRAM_ID);
+
+  const instructions = [
+    createAssociatedTokenAccountIdempotentInstruction(
+      owner,
+      ata,
+      owner,
+      mint,
+      tokenProgramId,
+      ASSOCIATED_TOKEN_PROGRAM_ID
+    ),
+  ];
+
+  const amount = BigInt(amountAtomic || 0n);
+  if (amount > 0n) {
+    instructions.push(
+      SystemProgram.transfer({ fromPubkey: owner, toPubkey: ata, lamports: Number(amount) }),
+      createSyncNativeInstruction(ata, tokenProgramId)
+    );
+  }
+
+  return { instructions, ata };
+}
 
 /**
  * Derive the Escrow PDA address and bump
@@ -348,10 +394,12 @@ export async function fetchOpenEscrows(connection) {
         const vaultAta = deriveVaultAta(pubkey, decoded.mintA, tokenProgramId);
         let vaultAmount = 0n;
         let vaultExists = false;
+        let vaultDecimals = null;
 
         try {
           const vaultBalance = await connection.getTokenAccountBalance(vaultAta);
           vaultAmount = BigInt(vaultBalance.value.amount);
+          vaultDecimals = vaultBalance.value.decimals;
           vaultExists = true;
         } catch (e) {
           // Vault might already be closed if in transit
@@ -363,6 +411,7 @@ export async function fetchOpenEscrows(connection) {
           vaultAddress: vaultAta.toBase58(),
           vaultAmount,
           vaultExists,
+          vaultDecimals,
           tokenProgramId,
         });
       } catch (err) {

@@ -3,8 +3,8 @@ import { useConnection, useWallet } from '@solana/wallet-adapter-react';
 import { PublicKey, Transaction } from '@solana/web3.js';
 import { ArrowDown, AlertTriangle, Shield, Check, Info, Sparkles, RefreshCw } from 'lucide-react';
 import { DEFAULT_DEVNET_TOKENS, ERROR_MESSAGES } from '../lib/constants';
-import { getMintDetails, getWalletTokenBalance, uiToAtomic, atomicToUi } from '../lib/tokens';
-import { createMakeInstruction, deriveEscrowPda, deriveVaultAta, parseAnchorError } from '../lib/escrowProgram';
+import { getMintDetails, getWalletSolBalance, getWalletTokenBalance, uiToAtomic, atomicToUi } from '../lib/tokens';
+import { buildSolWrapInstructions, createMakeInstruction, deriveEscrowPda, deriveVaultAta, isSolMint, parseAnchorError } from '../lib/escrowProgram';
 
 export function MakeEscrowCard({ onEscrowCreated, openTxModal }) {
   const { connection } = useConnection();
@@ -57,7 +57,9 @@ export function MakeEscrowCard({ onEscrowCreated, openTxModal }) {
         if (!isCancelled) {
           setMintADetails(details);
           if (publicKey) {
-            const bal = await getWalletTokenBalance(connection, publicKey, details.mint, details.programId);
+            const bal = isSolMint(details.mint)
+              ? await getWalletSolBalance(connection, publicKey)
+              : await getWalletTokenBalance(connection, publicKey, details.mint, details.programId);
             if (!isCancelled) setBalanceA(bal.uiAmount);
           }
         }
@@ -87,7 +89,9 @@ export function MakeEscrowCard({ onEscrowCreated, openTxModal }) {
         if (!isCancelled) {
           setMintBDetails(details);
           if (publicKey) {
-            const bal = await getWalletTokenBalance(connection, publicKey, details.mint, details.programId);
+            const bal = isSolMint(details.mint)
+              ? await getWalletSolBalance(connection, publicKey)
+              : await getWalletTokenBalance(connection, publicKey, details.mint, details.programId);
             if (!isCancelled) setBalanceB(bal.uiAmount);
           }
         }
@@ -166,7 +170,9 @@ export function MakeEscrowCard({ onEscrowCreated, openTxModal }) {
     }
 
     if (!mintADetails || !mintBDetails) {
-      alert('Token details could not be verified on Devnet.');
+      const role = mintADetails ? 'requested' : 'offered';
+      const mint = mintADetails ? activeMintB : activeMintA;
+      alert(`The ${role} token ${mint} does not exist on Devnet, so it cannot be priced. Pick another token or use a mint that exists on Devnet.`);
       return;
     }
 
@@ -177,14 +183,17 @@ export function MakeEscrowCard({ onEscrowCreated, openTxModal }) {
 
     try {
       setIsSubmitting(true);
+      const depositAtomic = uiToAtomic(amountA, mintADetails.decimals);
+      const receiveAtomic = uiToAtomic(amountB, mintBDetails.decimals);
+      const isSolDeposit = isSolMint(mintADetails.mint);
+
       openTxModal({
         status: 'signing',
         title: 'Approve Escrow Creation',
-        message: `Please approve the transaction in your wallet to deposit ${amountA} tokens into the escrow vault.`,
+        message: isSolDeposit
+          ? `Please approve the transaction. It wraps ${amountA} SOL and deposits it into the escrow vault in one step.`
+          : `Please approve the transaction in your wallet to deposit ${amountA} tokens into the escrow vault.`,
       });
-
-      const depositAtomic = uiToAtomic(amountA, mintADetails.decimals);
-      const receiveAtomic = uiToAtomic(amountB, mintBDetails.decimals);
 
       const ix = createMakeInstruction({
         maker: publicKey,
@@ -196,7 +205,16 @@ export function MakeEscrowCard({ onEscrowCreated, openTxModal }) {
         tokenProgram: mintADetails.programId,
       });
 
-      const transaction = new Transaction().add(ix);
+      const transaction = isSolDeposit
+        ? new Transaction().add(
+            ...buildSolWrapInstructions({
+              wallet: publicKey,
+              amountAtomic: depositAtomic,
+              tokenProgram: mintADetails.programId,
+            }).instructions,
+            ix
+          )
+        : new Transaction().add(ix);
       const { blockhash, lastValidBlockHeight } = await connection.getLatestBlockhash('confirmed');
       transaction.recentBlockhash = blockhash;
       transaction.feePayer = publicKey;

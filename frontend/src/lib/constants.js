@@ -25,6 +25,11 @@ export const INSTRUCTION_DISCRIMINATORS = {
 };
 
 // Known Devnet Test Mints (SPL Token standard)
+export const WSOL_MINT = 'So11111111111111111111111111111111111111112';
+
+// Lamports a wrapped-SOL account must hold to stay rent exempt. Creating one costs this much SOL.
+export const WSOL_ATA_RENT_LAMPORTS = 2039280;
+
 export const DEFAULT_DEVNET_TOKENS = [
   {
     symbol: 'DevUSDC',
@@ -35,20 +40,12 @@ export const DEFAULT_DEVNET_TOKENS = [
     logo: '💵',
   },
   {
-    symbol: 'WSOL',
-    name: 'Wrapped SOL',
-    mint: 'So11111111111111111111111111111111111111112',
+    symbol: 'SOL',
+    name: 'Solana',
+    mint: WSOL_MINT,
     decimals: 9,
     programId: 'TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA',
     logo: '◎',
-  },
-  {
-    symbol: 'DevUSDT',
-    name: 'Devnet Tether',
-    mint: 'EJwZgeZrdms8gPRBVatWvoWbpmucFDujRZmEi1mrGQks',
-    decimals: 6,
-    programId: 'TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA',
-    logo: '🟢',
   },
 ];
 
