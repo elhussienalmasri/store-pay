@@ -15,11 +15,11 @@
   if (window.EscrowPay && window.EscrowPay.__v1) return;
 
   var script = document.currentScript;
-  var baseOrigin = 'http://localhost:3000';
+  var baseOrigin = '';
   try {
     baseOrigin = new URL(script.src, window.location.href).origin;
   } catch (err) {
-    /* keep default */
+    return;
   }
 
   var active = null;

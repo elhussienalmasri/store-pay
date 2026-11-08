@@ -228,14 +228,8 @@ export function buildApiExample({ appOrigin, productId }) {
   -d '{"productId":"${productId}","quantity":1,"merchantOrderId":"ORDER-123"}'`;
 }
 
-export function buildInPayConfig({ appOrigin, programId, rpcUrl }) {
-  return `# EscrowPay inline pay (buyer pays on your own page, no popup window)
-# Server-side only: never expose the secret key to the browser.
-ESCROWPAY_SECRET_KEY=sk_live_your_secret_key
-ESCROWPAY_INPAY_API_URL=${appOrigin}
-NEXT_PUBLIC_ESCROWPAY_INPAY=1
-NEXT_PUBLIC_ESCROWPAY_PROGRAM_ID=${programId}
-NEXT_PUBLIC_ESCROWPAY_RPC_URL=${rpcUrl}`;
+export function buildInPayConfig({ appOrigin, publishableKey, buildExample }) {
+  return buildExample({ escrowId: publishableKey, escrowOrigin: appOrigin });
 }
 
 export function shortAddress(address, size = 4) {

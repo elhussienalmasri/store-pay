@@ -16,8 +16,8 @@ import {
   buildInPayConfig,
   formatFiatMinor,
 } from '../../lib/widgetCore.mjs';
-import { DEVNET_RPC_URL, PROGRAM_ID_STRING } from '../../lib/constants';
 import { CopyButton, Field, inputClass, Panel } from './WidgetUi';
+import { buildInPayWidgetExample } from '../../lib/inpayWidgetExample';
 
 const MODE_OPTIONS = [
   { id: 'escrow', label: 'Escrow only' },
@@ -43,7 +43,8 @@ export function WidgetConfigPanel({ secret, merchant, products, onChanged }) {
   const [paymentLink, setPaymentLink] = useState('');
 
   useEffect(() => {
-    if (typeof window !== 'undefined') setAppOrigin(window.location.origin);
+    const origin = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+    setAppOrigin(origin.replace(/\/$/, ''));
   }, []);
 
   useEffect(() => {
@@ -78,10 +79,10 @@ export function WidgetConfigPanel({ secret, merchant, products, onChanged }) {
     if (!appOrigin) return '';
     return buildInPayConfig({
       appOrigin,
-      programId: PROGRAM_ID_STRING,
-      rpcUrl: DEVNET_RPC_URL,
+      publishableKey: merchant.publishableKey,
+      buildExample: buildInPayWidgetExample,
     });
-  }, [appOrigin]);
+  }, [appOrigin, merchant.publishableKey]);
 
   const catalogExample = useMemo(() => {
     if (!appOrigin) return '';
@@ -376,16 +377,17 @@ export function WidgetConfigPanel({ secret, merchant, products, onChanged }) {
               <Zap className="w-4 h-4 text-[#14F195]" />
               Inline pay
             </h3>
-            <CopyButton value={inpayConfig} label="Copy config" />
+            <CopyButton value={inpayConfig} label="Copy component" />
           </div>
           <pre className="text-[10px] leading-relaxed text-gray-300 bg-[#0a0c12] border border-[#1e2233] rounded-xl p-3 overflow-x-auto whitespace-pre-wrap break-all">
             {inpayConfig}
           </pre>
           <p className="text-[11px] text-gray-500">
-            Lets buyers pay inline on your site from their own wallet — no popup window.
-            Your server calls {`{ESCROWPAY_INPAY_API_URL}/api/v1/inpay/sessions`} with
-            the secret key (escrow or "buyer chooses" mode only), and the returned
-            session is funded straight from your checkout page.
+            Mount this component on your checkout page and pass your server-priced order:
+            {' '}<code>{'{ amountMinor, currency, reference, description }'}</code>.
+            EscrowPay handles the wallet, transaction and confirmation inline, then returns
+            the funded session on <code>escrowpay:paid</code> so you can confirm the payment
+            to the buyer. Keep your secret key on your server.
           </p>
         </Panel>
 

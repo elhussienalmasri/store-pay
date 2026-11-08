@@ -18,6 +18,7 @@ import {
 import { getSession, logoutMerchant, clearStoredSecret } from '../lib/merchantApi';
 import { NotificationBell } from './NotificationBell';
 import { PlatformNav } from './PlatformNav';
+import { BrandName } from './BrandName';
 
 // Dynamically import WalletMultiButton to prevent SSR hydration issues
 const WalletMultiButton = dynamic(
@@ -100,9 +101,7 @@ export function Navbar({ activeTab, setActiveTab, onRefresh, isRefreshing }) {
               </div>
             </div>
             <div className="hidden sm:block">
-              <span className="text-lg font-black tracking-tight text-white flex items-center gap-1.5">
-                Escrow<span className="bg-gradient-to-r from-[#9945FF] to-[#14F195] bg-clip-text text-transparent">Pay</span>
-              </span>
+              <BrandName />
               <span className="inline-flex items-center gap-1 text-[11px] font-medium px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/30">
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
                 Devnet Only

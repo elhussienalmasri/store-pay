@@ -5,6 +5,7 @@ import { LogOut, Zap } from 'lucide-react';
 import { MerchantWidgetExperience } from '../../components/widget/MerchantWidgetExperience';
 import { NotificationBell } from '../../components/NotificationBell';
 import { PlatformNav } from '../../components/PlatformNav';
+import { BrandName } from '../../components/BrandName';
 import { SiteFooter } from '../../components/SiteFooter';
 import { useSignedInMerchant } from '../../lib/useSignedInMerchant';
 
@@ -19,7 +20,7 @@ export default function MerchantPage({ signedIn: initialSignedIn = false }) {
   return (
     <>
       <Head>
-        <title>Widgets · EscrowPay</title>
+        <title>Widgets · StorePay</title>
         <meta
           name="description"
           content="Create an escrow payment widget, embed it on your storefront, and settle Solana payments."
@@ -37,7 +38,7 @@ export default function MerchantPage({ signedIn: initialSignedIn = false }) {
                   </div>
                 </div>
                 <div>
-                  <span className="text-sm font-black text-white">EscrowPay</span>
+                  <BrandName className="text-sm font-black text-white" />
                   <span className="hidden sm:inline text-[11px] text-gray-500 ml-2">
                     Widgets
                   </span>

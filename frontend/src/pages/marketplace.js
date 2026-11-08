@@ -80,7 +80,7 @@ export default function MarketplacePage({ items, merchantName }) {
   return (
     <>
       <Head>
-        <title>Marketplace · EscrowPay</title>
+        <title>Marketplace · StorePay</title>
         <meta
           name="description"
           content="Browse products and services from EscrowPay sellers and pay with escrow-protected Solana checkout."

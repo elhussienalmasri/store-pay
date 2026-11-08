@@ -40,6 +40,7 @@ const SAMPLE_PRODUCTS = [
 
 export function MerchantWidgetPortal() {
   const { publicKey } = useWallet();
+  const appOrigin = (process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000').replace(/\/$/, '');
 
   // Merchant Settings
   const [merchantWallet, setMerchantWallet] = useState('');
@@ -84,7 +85,7 @@ export function MerchantWidgetPortal() {
   }
 
   const htmlCodeSnippet = `<!-- 1. Add Widget Script to <head> -->
-<script src="http://localhost:3000/widget.js" async></script>
+<script src="${appOrigin}/widget.js" async></script>
 
 <!-- 2. Add Pay with Crypto Button -->
 <button 
@@ -97,7 +98,7 @@ export function MerchantWidgetPortal() {
 </button>`;
 
   const nodeCodeSnippet = `// Backend Order Session API (Node.js / Express)
-const res = await fetch("http://localhost:3000/api/checkout/session", {
+const res = await fetch("${appOrigin}/api/checkout/session", {
   method: "POST",
   headers: { "Content-Type": "application/json" },
   body: JSON.stringify({
@@ -114,7 +115,7 @@ const { sessionId } = await res.json();
 // Open widget with secure session ID:
 // CryptoCheckout.openSession(sessionId);`;
 
-  const curlCodeSnippet = `curl -X POST http://localhost:3000/api/checkout/session \\
+  const curlCodeSnippet = `curl -X POST ${appOrigin}/api/checkout/session \\
   -H "Content-Type: application/json" \\
   -d '{
     "orderId": "ORDER-9812",

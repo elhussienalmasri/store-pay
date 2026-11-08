@@ -81,7 +81,7 @@ export default function EscrowApp() {
   return (
     <div className="min-h-screen flex flex-col bg-[#0b0c10] text-[#e0e2ec]">
       <Head>
-        <title>Escrow App · EscrowPay</title>
+        <title>Escrow App · StorePay</title>
       </Head>
 
       {/* Navigation Bar */}

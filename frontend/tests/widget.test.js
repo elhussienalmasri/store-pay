@@ -1,5 +1,7 @@
 const test = require('node:test');
 const assert = require('node:assert');
+const fs = require('node:fs');
+const path = require('node:path');
 
 // widgetCore is an ESM module shared by the browser, API routes, and tests.
 const loadCore = () => import('../src/lib/widgetCore.mjs');
@@ -163,6 +165,25 @@ test('embed snippet includes keys and escapes merchant text', async () => {
   assert.ok(snippet.includes('data-mode="direct"'));
   assert.ok(snippet.includes('Buy &lt;now&gt; &amp; save'));
   assert.ok(!snippet.includes('<now>'));
+});
+
+test('inline pay example uses one escrow id and the InPay pay function', async () => {
+  const { buildInPayConfig } = await loadCore();
+  const source = fs.readFileSync(path.join(__dirname, '../src/lib/inpayWidgetExample.js'), 'utf8');
+  const buildExample = ({ escrowId, escrowOrigin }) => `const ESCROW_ID = '${escrowId}';\nconst url = '${escrowOrigin}/inpay/v1.js?escrow_id=' + ESCROW_ID;`;
+
+  const snippet = buildInPayConfig({
+    appOrigin: 'https://app.escrowpay.test',
+    publishableKey: 'pk_live_abc123',
+    buildExample,
+  });
+
+  assert.ok(snippet.includes("const ESCROW_ID = 'pk_live_abc123'"));
+  assert.ok(snippet.includes('https://app.escrowpay.test/inpay/v1.js?escrow_id='));
+  assert.ok(source.includes('window.EscrowPayInPay.pay'));
+  assert.ok(!source.includes('WIDGET_ID'));
+  assert.ok(!source.includes('YOUR_PUBLISHABLE_KEY'));
+  assert.ok(!source.includes('localhost:3000'));
 });
 
 test('key masking and uint64 validation', async () => {

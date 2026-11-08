@@ -4,12 +4,13 @@ import Link from 'next/link';
 import { Zap } from 'lucide-react';
 import { PlatformNav } from './PlatformNav';
 import { SiteFooter } from './SiteFooter';
+import { BrandName } from './BrandName';
 
 export function AuthLayout({ title, children }) {
   return (
     <>
       <Head>
-        <title>{`${title} · EscrowPay`}</title>
+        <title>{`${title} · StorePay`}</title>
         <meta
           name="description"
           content="EscrowPay merchant accounts: manage escrow-protected Solana payments and widget settings."
@@ -29,7 +30,7 @@ export function AuthLayout({ title, children }) {
                     <Zap className="w-4 h-4 text-[#14F195] fill-current" />
                   </div>
                 </div>
-                <span className="text-sm font-black text-white">EscrowPay</span>
+                <BrandName className="text-sm font-black text-white" />
               </Link>
 
               <PlatformNav

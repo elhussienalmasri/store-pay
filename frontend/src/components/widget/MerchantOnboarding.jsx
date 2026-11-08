@@ -15,8 +15,8 @@ import {
   signupMerchant,
   storeSecret,
 } from '../../lib/merchantApi';
-import { isLikelyPublicKey } from '../../lib/widgetCore.mjs';
-import { DEVNET_RPC_URL, PROGRAM_ID_STRING } from '../../lib/constants';
+import { buildInPayConfig, isLikelyPublicKey } from '../../lib/widgetCore.mjs';
+import { buildInPayWidgetExample } from '../../lib/inpayWidgetExample';
 import { CopyButton, Field, inputClass, Panel } from './WidgetUi';
 
 const PLANS = [
@@ -121,8 +121,7 @@ export function MerchantOnboarding({ onReady }) {
   }
 
   if (created) {
-    const origin =
-      typeof window !== 'undefined' ? window.location.origin : 'https://escrowpay.app';
+    const origin = (process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000').replace(/\/$/, '');
     const escrowSnippet = `<!-- EscrowPay merchant widget -->
 <script src="${origin}/widget/v1.js" async></script>
 <button
@@ -132,12 +131,11 @@ export function MerchantOnboarding({ onReady }) {
   data-quantity="1"
   data-mode="escrow"
 >Pay with crypto</button>`;
-    const inpayEnv = `# Replace with your secret key
-ESCROWPAY_SECRET_KEY=sk_live_your_secret_key
-ESCROWPAY_INPAY_API_URL=${origin}
-NEXT_PUBLIC_ESCROWPAY_INPAY=1
-NEXT_PUBLIC_ESCROWPAY_PROGRAM_ID=${PROGRAM_ID_STRING}
-NEXT_PUBLIC_ESCROWPAY_RPC_URL=${DEVNET_RPC_URL}`;
+    const inpaySnippet = buildInPayConfig({
+      appOrigin: origin,
+      publishableKey: created.merchant.publishableKey,
+      buildExample: buildInPayWidgetExample,
+    });
 
     return (
       <div className="max-w-xl mx-auto">
@@ -215,15 +213,15 @@ NEXT_PUBLIC_ESCROWPAY_RPC_URL=${DEVNET_RPC_URL}`;
             <div className="rounded-2xl bg-[#10121a] border border-[#1e2233] p-4 space-y-2">
               <div className="flex items-center justify-between gap-3">
                 <span className="text-[11px] font-semibold uppercase tracking-wider text-gray-400">
-                  {channel === 'inpay' ? 'Inline pay config' : 'Popup pay snippet'}
+                  {channel === 'inpay' ? 'Inline pay component' : 'Popup pay snippet'}
                 </span>
                 <CopyButton
-                  value={channel === 'inpay' ? inpayEnv : escrowSnippet}
-                  label={channel === 'inpay' ? 'Copy config' : 'Copy HTML'}
+                  value={channel === 'inpay' ? inpaySnippet : escrowSnippet}
+                  label={channel === 'inpay' ? 'Copy component' : 'Copy HTML'}
                 />
               </div>
               <pre className="text-[10px] leading-relaxed text-gray-300 bg-[#0a0c12] border border-[#1e2233] rounded-xl p-3 overflow-x-auto whitespace-pre-wrap break-all">
-                {channel === 'inpay' ? inpayEnv : escrowSnippet}
+                {channel === 'inpay' ? inpaySnippet : escrowSnippet}
               </pre>
               <p className="text-[10px] text-gray-500">
                 {channel === 'inpay'

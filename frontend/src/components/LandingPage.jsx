@@ -20,6 +20,7 @@ import {
 import { CopyButton } from './widget/WidgetUi';
 import { PlatformNav } from './PlatformNav';
 import { useSignedInMerchant } from '../lib/useSignedInMerchant';
+import { BrandName } from './BrandName';
 
 const EMBED_SNIPPET = `<!-- EscrowPay merchant widget -->
 <script src="https://your-escrowpay.app/widget/v1.js" async></script>
@@ -201,7 +202,7 @@ export function LandingPage() {
   return (
     <>
       <Head>
-        <title>EscrowPay · Marketplace, crypto checkout and P2P exchange on Solana</title>
+        <title>StorePay · Marketplace, crypto checkout and P2P exchange on Solana</title>
         <meta
           name="description"
           content="Buy and sell with escrow on the marketplace, embed a Solana checkout widget in your store, or swap tokens peer-to-peer — all settled in program-owned vaults."
@@ -219,12 +220,7 @@ export function LandingPage() {
             <Link href="/" className="flex items-center gap-2.5">
               <BrandMark />
               <div>
-                <span className="text-lg font-black tracking-tight text-white">
-                  Escrow
-                  <span className="bg-gradient-to-r from-[#9945FF] to-[#14F195] bg-clip-text text-transparent">
-                    Pay
-                  </span>
-                </span>
+                <BrandName />
                 <span className="hidden sm:inline-flex ml-2 items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 align-middle">
                   <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
                   Devnet
@@ -298,8 +294,8 @@ export function LandingPage() {
                   Escrow for buying, selling and swapping
                 </div>
 
-                <h1 className="text-4xl sm:text-5xl lg:text-6xl font-black tracking-tight text-white leading-[1.05]">
-                  Buy, sell and swap crypto
+                <h1 className="text-3xl sm:text-4xl lg:text-5xl font-black tracking-tight text-white leading-[1.05]">
+                  Payment solutions for your store. <span className="bg-gradient-to-r from-[#9945FF] via-[#b06bff] to-[#14F195] bg-clip-text text-transparent">Buy</span>, sell and swap crypto
                   <span className="block bg-gradient-to-r from-[#9945FF] via-[#b06bff] to-[#14F195] bg-clip-text text-transparent">
                     without the trust gap.
                   </span>
@@ -583,7 +579,7 @@ export function LandingPage() {
               <div className="space-y-3">
                 <div className="flex items-center gap-2.5">
                   <BrandMark />
-                  <span className="text-sm font-black text-white">EscrowPay</span>
+                  <BrandName className="text-sm font-black text-white" />
                 </div>
                 <p className="text-[11px] leading-relaxed max-w-xs">
                   Escrow-protected marketplace, embeddable checkout and peer-to-peer
@@ -617,7 +613,7 @@ export function LandingPage() {
             </div>
 
             <div className="mt-10 pt-5 border-t border-[#1b1f30] flex items-center justify-center gap-3">
-              <span>© {new Date().getFullYear()} EscrowPay · Devnet only</span>
+              <span>© {new Date().getFullYear()} StorePay · Devnet only</span>
             </div>
           </div>
         </footer>
