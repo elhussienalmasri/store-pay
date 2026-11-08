@@ -51,9 +51,15 @@ export default async function handler(req, res) {
       throw new ApiError(400, 'Escrow address does not match the buyer and order seed');
     }
 
+    const buyerEmail = String(req.body?.buyerEmail || '').trim().toLowerCase();
+    const notifyBuyerByEmail =
+      req.body?.notifyBuyer === true && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(buyerEmail);
+
     const updated = await patchSession(session.id, {
       buyer,
       escrowAddress,
+      buyerEmail: notifyBuyerByEmail ? buyerEmail : null,
+      notifyBuyer: notifyBuyerByEmail,
       status: 'prepared',
     });
     const merchant = await findMerchantById(updated.merchantId);

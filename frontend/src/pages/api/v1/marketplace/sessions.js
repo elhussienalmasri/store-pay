@@ -13,8 +13,10 @@ import {
 } from '../../../../lib/server/crypto';
 import { getEurUsdRate, getSolUsd } from '../../../../lib/server/pricing';
 import { insertSession, readDb } from '../../../../lib/server/store';
+import { notifySeller } from '../../../../lib/server/notifications';
 import { sessionPublicView } from '../../../../lib/server/views';
 import {
+  formatFiatMinor,
   quoteSettlement,
   QUOTE_TTL_MS,
   SESSION_TTL_MS,
@@ -101,6 +103,17 @@ export default async function handler(req, res) {
     };
 
     await insertSession(session);
+
+    await notifySeller({
+      merchant,
+      session,
+      kind: 'order.created',
+      title: 'New marketplace order',
+      body: `A buyer started checkout for ${quote.quantity} × ${product.name} (${formatFiatMinor(
+        quote.subtotalMinor,
+        quote.currency
+      )}).`,
+    });
 
     res.setHeader('Cache-Control', 'no-store');
     return res.status(201).json({

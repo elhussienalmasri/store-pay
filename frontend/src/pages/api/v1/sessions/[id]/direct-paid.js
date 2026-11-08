@@ -2,9 +2,10 @@ import { ApiError, sendError } from '../../../../../lib/server/api';
 import { requireSessionToken } from '../../../../../lib/server/auth';
 import { verifyDirectPayment } from '../../../../../lib/server/solana';
 import { findMerchantById, patchSession } from '../../../../../lib/server/store';
+import { notifyBuyer, notifySeller } from '../../../../../lib/server/notifications';
 import { sessionPublicView } from '../../../../../lib/server/views';
 import { deliverWebhook } from '../../../../../lib/server/webhooks';
-import { isLikelyPublicKey } from '../../../../../lib/widgetCore.mjs';
+import { formatFiatMinor, isLikelyPublicKey } from '../../../../../lib/widgetCore.mjs';
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
@@ -42,14 +43,35 @@ export default async function handler(req, res) {
       throw new ApiError(400, err.message);
     }
 
+    const buyerEmail = String(req.body?.buyerEmail || '').trim().toLowerCase();
+    const notifyBuyerByEmail =
+      req.body?.notifyBuyer === true && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(buyerEmail);
+
     const updated = await patchSession(session.id, {
       status: 'paid',
       buyer,
+      buyerEmail: notifyBuyerByEmail ? buyerEmail : null,
+      notifyBuyer: notifyBuyerByEmail,
       signatures: { ...(session.signatures || {}), paid: signature },
       paidAt: new Date().toISOString(),
     });
 
     const view = sessionPublicView(updated, merchant);
+    const amount = formatFiatMinor(updated.subtotalMinor, updated.currency);
+    await notifySeller({
+      merchant,
+      session: updated,
+      kind: 'order.paid',
+      title: 'Payment received',
+      body: `${updated.quantity} × ${updated.productName} was paid directly (${amount}).`,
+    });
+    await notifyBuyer({
+      merchant,
+      session: updated,
+      kind: 'order.paid',
+      title: 'Purchase complete',
+      body: `Your ${amount} payment for ${updated.quantity} × ${updated.productName} was sent to ${merchant.name}.`,
+    });
     await deliverWebhook(merchant, 'order.paid', {
       orderId: updated.id,
       session: view,

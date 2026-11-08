@@ -60,6 +60,8 @@ export default function CheckoutPage() {
   const notifiedRef = useRef(false);
   const [embedded, setEmbedded] = useState(false);
   const [devnetBalance, setDevnetBalance] = useState(null);
+  const [buyerEmail, setBuyerEmail] = useState('');
+  const [notifyBuyer, setNotifyBuyer] = useState(false);
 
   const sessionId = router.query.sessionId;
   const token = router.query.t;
@@ -166,6 +168,8 @@ export default function CheckoutPage() {
               sendTransaction,
               session,
               token,
+              buyerEmail: notifyBuyer ? buyerEmail.trim() : '',
+              notifyBuyer,
             })
           : await payDirect({
               connection,
@@ -173,6 +177,8 @@ export default function CheckoutPage() {
               sendTransaction,
               session,
               token,
+              buyerEmail: notifyBuyer ? buyerEmail.trim() : '',
+              notifyBuyer,
             });
       setSession(result.session);
       setTxSignature(result.signature);
@@ -466,6 +472,34 @@ export default function CheckoutPage() {
                   )}
                   <div className="flex justify-center">
                     <WalletMultiButton className="!bg-[#1a1d2b] !border !border-[#2b3048] !text-white !font-semibold !text-xs !rounded-xl !h-10 !px-4" />
+                  </div>
+                  <div className="rounded-2xl border border-[#23273a] bg-[#0e1017] p-3 space-y-2">
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="text-[11px] font-semibold text-gray-300">
+                        Email me order updates
+                      </span>
+                      <span className="text-[10px] text-gray-600">optional</span>
+                    </div>
+                    <input
+                      type="email"
+                      value={buyerEmail}
+                      onChange={(e) => {
+                        setBuyerEmail(e.target.value);
+                        if (!e.target.value.trim()) setNotifyBuyer(false);
+                      }}
+                      placeholder="you@example.com"
+                      className="w-full h-9 rounded-lg bg-[#141624] border border-[#23273a] px-3 text-xs text-white placeholder:text-gray-600"
+                    />
+                    <label className="flex items-center gap-2 text-[11px] text-gray-400">
+                      <input
+                        type="checkbox"
+                        checked={notifyBuyer}
+                        disabled={!buyerEmail.trim()}
+                        onChange={(e) => setNotifyBuyer(e.target.checked)}
+                        className="w-3.5 h-3.5 accent-[#14F195] disabled:opacity-40"
+                      />
+                      Send me a receipt and delivery updates
+                    </label>
                   </div>
                   <button
                     onClick={handlePay}

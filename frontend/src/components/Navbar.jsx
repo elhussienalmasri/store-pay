@@ -16,6 +16,7 @@ import {
   Store,
 } from 'lucide-react';
 import { getSession, logoutMerchant, clearStoredSecret } from '../lib/merchantApi';
+import { NotificationBell } from './NotificationBell';
 import { PlatformNav } from './PlatformNav';
 
 // Dynamically import WalletMultiButton to prevent SSR hydration issues
@@ -114,6 +115,7 @@ export function Navbar({ activeTab, setActiveTab, onRefresh, isRefreshing }) {
 
           {/* Wallet Actions */}
           <div className="flex items-center space-x-3">
+            <NotificationBell />
             {publicKey && (
               <div className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#131522] border border-[#23273a] text-xs font-mono text-gray-300">
                 <Coins className="w-3.5 h-3.5 text-amber-400" />

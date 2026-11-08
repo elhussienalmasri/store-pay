@@ -28,10 +28,12 @@ export function SettingsPanel({ secret, merchant, onChanged, onSignOut, onSecret
   const [form, setForm] = useState({
     name: merchant.name,
     email: merchant.email,
+    notificationEmail: merchant.notificationEmail || '',
     domains: (merchant.domains || []).join(', '),
     payoutWallet: merchant.payoutWallet,
     webhookUrl: merchant.webhookUrl || '',
     plan: merchant.plan,
+    emailNotifications: merchant.config?.emailNotifications === true,
   });
   const [busy, setBusy] = useState(false);
   const [rotating, setRotating] = useState(false);
@@ -43,10 +45,12 @@ export function SettingsPanel({ secret, merchant, onChanged, onSignOut, onSecret
     setForm({
       name: merchant.name,
       email: merchant.email,
+      notificationEmail: merchant.notificationEmail || '',
       domains: (merchant.domains || []).join(', '),
       payoutWallet: merchant.payoutWallet,
       webhookUrl: merchant.webhookUrl || '',
       plan: merchant.plan,
+      emailNotifications: merchant.config?.emailNotifications === true,
     });
   }, [merchant]);
 
@@ -75,10 +79,15 @@ export function SettingsPanel({ secret, merchant, onChanged, onSignOut, onSecret
       await updateMerchant(secret, {
         name: form.name,
         email: form.email,
+        notificationEmail: form.notificationEmail,
         domains,
         payoutWallet: form.payoutWallet,
         webhookUrl: form.webhookUrl,
         plan: form.plan,
+        config: {
+          ...(merchant.config || {}),
+          emailNotifications: form.emailNotifications,
+        },
       });
       await onChanged();
       setNotice('Settings saved');
@@ -212,6 +221,37 @@ export function SettingsPanel({ secret, merchant, onChanged, onSignOut, onSecret
               placeholder="https://yourstore.com/api/escrowpay/webhook"
             />
           </Field>
+
+          <Field
+            label="Notification email"
+            hint="Where order emails go. Leave blank to use your contact email."
+          >
+            <input
+              type="email"
+              className={inputClass}
+              value={form.notificationEmail}
+              onChange={(e) => update('notificationEmail', e.target.value)}
+              placeholder={form.email || 'you@yourstore.com'}
+            />
+          </Field>
+
+          <label className="flex items-start gap-2.5 px-3 py-2.5 rounded-xl bg-[#0e1017] border border-[#1e2233] cursor-pointer">
+            <input
+              type="checkbox"
+              checked={form.emailNotifications}
+              onChange={(e) => update('emailNotifications', e.target.checked)}
+              className="mt-0.5 w-3.5 h-3.5 accent-[#14F195]"
+            />
+            <span>
+              <span className="block text-xs font-semibold text-white">
+                Email me order updates
+              </span>
+              <span className="block text-[10px] text-gray-500">
+                Sends new-order and payment emails to{' '}
+                {form.notificationEmail || form.email || 'your contact email'}.
+              </span>
+            </span>
+          </label>
 
           {error && (
             <div className="rounded-xl border border-red-500/30 bg-red-500/10 p-3 text-xs text-red-200">

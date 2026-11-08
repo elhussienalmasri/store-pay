@@ -15,8 +15,10 @@ import {
 } from '../../../../lib/server/crypto';
 import { getEurUsdRate, getSolUsd } from '../../../../lib/server/pricing';
 import { insertSession } from '../../../../lib/server/store';
+import { notifySeller } from '../../../../lib/server/notifications';
 import { deriveEscrowPda } from '../../../../lib/escrowProgram';
 import {
+  formatFiatMinor,
   isLikelyPublicKey,
   quoteSettlement,
   QUOTE_TTL_MS,
@@ -116,6 +118,17 @@ export default async function handler(req, res) {
     };
 
     await insertSession(session);
+
+    await notifySeller({
+      merchant,
+      session,
+      kind: 'order.created',
+      title: 'New inline payment order',
+      body: `Buyer ${buyer.slice(0, 4)}…${buyer.slice(-4)} started an inline payment for ${description} (${formatFiatMinor(
+        quote.subtotalMinor,
+        quote.currency
+      )}).`,
+    });
 
     res.setHeader('Cache-Control', 'no-store');
     return res.status(201).json({

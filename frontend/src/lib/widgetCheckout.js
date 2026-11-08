@@ -116,7 +116,15 @@ export async function buildEscrowFundingTransaction({ connection, buyer, session
   return transaction;
 }
 
-export async function fundEscrow({ connection, publicKey, sendTransaction, session, token }) {
+export async function fundEscrow({
+  connection,
+  publicKey,
+  sendTransaction,
+  session,
+  token,
+  buyerEmail,
+  notifyBuyer,
+}) {
   const buyer = publicKey.toBase58();
   const { escrowPda } = deriveEscrowPda(publicKey, session.seed);
 
@@ -126,6 +134,8 @@ export async function fundEscrow({ connection, publicKey, sendTransaction, sessi
       token,
       buyer,
       escrowAddress: escrowPda.toBase58(),
+      buyerEmail,
+      notifyBuyer,
     },
   });
 
@@ -164,7 +174,15 @@ export async function refundEscrow({ connection, publicKey, sendTransaction, ses
   return { signature, session: data.session };
 }
 
-export async function payDirect({ connection, publicKey, sendTransaction, session, token }) {
+export async function payDirect({
+  connection,
+  publicKey,
+  sendTransaction,
+  session,
+  token,
+  buyerEmail,
+  notifyBuyer,
+}) {
   const transaction = new Transaction().add(
     SystemProgram.transfer({
       fromPubkey: publicKey,
@@ -176,7 +194,13 @@ export async function payDirect({ connection, publicKey, sendTransaction, sessio
 
   const data = await api(`/api/v1/sessions/${encodeURIComponent(session.id)}/direct-paid`, {
     method: 'POST',
-    body: { token, buyer: publicKey.toBase58(), signature },
+    body: {
+      token,
+      buyer: publicKey.toBase58(),
+      signature,
+      buyerEmail,
+      notifyBuyer,
+    },
   });
 
   return { signature, session: data.session };

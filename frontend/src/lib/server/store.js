@@ -10,6 +10,7 @@ const EMPTY_DB = {
   products: [],
   sessions: [],
   deliveries: [],
+  notifications: [],
 };
 
 let writeQueue = Promise.resolve();
@@ -29,6 +30,7 @@ async function loadDb() {
       products: parsed.products || [],
       sessions: parsed.sessions || [],
       deliveries: parsed.deliveries || [],
+      notifications: parsed.notifications || [],
     };
   } catch (err) {
     if (err.code === 'ENOENT') return freshDb();
@@ -224,4 +226,86 @@ export async function listDeliveries(merchantId, limit = 20) {
     .filter((delivery) => delivery.merchantId === merchantId)
     .sort((a, b) => (a.createdAt < b.createdAt ? 1 : -1))
     .slice(0, limit);
+}
+
+const NOTIFICATION_CAP = 1000;
+
+function inNotificationScope(notification, scope) {
+  if (!scope) return false;
+  if (notification.audience === 'merchant') {
+    return Boolean(scope.merchantId) && notification.merchantId === scope.merchantId;
+  }
+  if (notification.audience === 'buyer') {
+    return Boolean(scope.wallet) && notification.wallet === scope.wallet;
+  }
+  return false;
+}
+
+export async function insertNotifications(records) {
+  if (!records.length) return [];
+  return withDb((db) => {
+    db.notifications.push(...records);
+    if (db.notifications.length > NOTIFICATION_CAP) {
+      db.notifications.splice(0, db.notifications.length - NOTIFICATION_CAP);
+    }
+    return records;
+  });
+}
+
+export async function listNotifications(scope, limit = 50) {
+  if (!scope) return [];
+  const db = await readDb();
+  return db.notifications
+    .filter((notification) => inNotificationScope(notification, scope))
+    .sort((a, b) => (a.createdAt < b.createdAt ? 1 : -1))
+    .slice(0, limit);
+}
+
+export async function markNotificationsRead(scope) {
+  if (!scope) return 0;
+  return withDb((db) => {
+    let changed = 0;
+    for (const notification of db.notifications) {
+      if (!notification.read && inNotificationScope(notification, scope)) {
+        notification.read = true;
+        changed += 1;
+      }
+    }
+    return changed;
+  });
+}
+
+export async function markNotificationRead(id, scope) {
+  if (!id || !scope) return false;
+  return withDb((db) => {
+    const notification = db.notifications.find(
+      (item) => item.id === id && inNotificationScope(item, scope)
+    );
+    if (!notification) return false;
+    notification.read = true;
+    return true;
+  });
+}
+
+export async function deleteNotification(id, scope) {
+  if (!id || !scope) return false;
+  return withDb((db) => {
+    const index = db.notifications.findIndex(
+      (notification) => notification.id === id && inNotificationScope(notification, scope)
+    );
+    if (index === -1) return false;
+    db.notifications.splice(index, 1);
+    return true;
+  });
+}
+
+export async function deleteNotifications(scope) {
+  if (!scope) return 0;
+  return withDb((db) => {
+    const before = db.notifications.length;
+    db.notifications = db.notifications.filter(
+      (notification) => !inNotificationScope(notification, scope)
+    );
+    return before - db.notifications.length;
+  });
 }

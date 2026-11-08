@@ -27,6 +27,7 @@ export function merchantOwnerView(merchant) {
     id: merchant.id,
     name: merchant.name,
     email: merchant.email,
+    notificationEmail: merchant.notificationEmail || '',
     domains: merchant.domains || [],
     payoutWallet: merchant.payoutWallet,
     plan: merchant.plan,

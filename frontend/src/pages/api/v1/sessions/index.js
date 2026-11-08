@@ -18,8 +18,10 @@ import {
   insertSession,
   listProducts,
 } from '../../../../lib/server/store';
+import { notifySeller } from '../../../../lib/server/notifications';
 import { sessionPublicView } from '../../../../lib/server/views';
 import {
+  formatFiatMinor,
   quoteSettlement,
   QUOTE_TTL_MS,
   SESSION_TTL_MS,
@@ -145,6 +147,17 @@ export default async function handler(req, res) {
     };
 
     await insertSession(session);
+
+    await notifySeller({
+      merchant,
+      session,
+      kind: 'order.created',
+      title: 'New order started',
+      body: `A buyer started checkout for ${session.quantity} × ${session.productName} (${formatFiatMinor(
+        session.subtotalMinor,
+        session.currency
+      )}).`,
+    });
 
     const appOrigin = getAppOrigin(req);
     const checkoutUrl = `${appOrigin}/checkout/${session.id}?t=${token}`;

@@ -2,6 +2,7 @@ import { ApiError, sendError } from '../../../../../lib/server/api';
 import { requireSessionToken } from '../../../../../lib/server/auth';
 import { verifyEscrowClosed } from '../../../../../lib/server/solana';
 import { findMerchantById, patchSession } from '../../../../../lib/server/store';
+import { notifyBuyer } from '../../../../../lib/server/notifications';
 import { sessionPublicView } from '../../../../../lib/server/views';
 import { deliverWebhook } from '../../../../../lib/server/webhooks';
 
@@ -48,6 +49,13 @@ export default async function handler(req, res) {
     });
 
     const view = sessionPublicView(updated, merchant);
+    await notifyBuyer({
+      merchant,
+      session: updated,
+      kind: 'order.refunded',
+      title: 'Refund issued',
+      body: `The escrow for ${updated.quantity} × ${updated.productName} was closed and your SOL was returned to your wallet.`,
+    });
     await deliverWebhook(merchant, 'order.refunded', {
       orderId: updated.id,
       session: view,

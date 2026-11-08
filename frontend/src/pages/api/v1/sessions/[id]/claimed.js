@@ -2,6 +2,7 @@ import { ApiError, sendError } from '../../../../../lib/server/api';
 import { requireMerchant } from '../../../../../lib/server/auth';
 import { verifyEscrowClosed } from '../../../../../lib/server/solana';
 import { findSessionById, patchSession } from '../../../../../lib/server/store';
+import { notifyBuyer } from '../../../../../lib/server/notifications';
 import { sessionMerchantView } from '../../../../../lib/server/views';
 import { deliverWebhook } from '../../../../../lib/server/webhooks';
 
@@ -42,6 +43,14 @@ export default async function handler(req, res) {
       status: 'claimed',
       signatures: { ...(session.signatures || {}), claimed: signature },
       claimedAt: new Date().toISOString(),
+    });
+
+    await notifyBuyer({
+      merchant,
+      session: updated,
+      kind: 'order.claimed',
+      title: 'Order completed',
+      body: `${merchant.name} confirmed delivery of ${updated.quantity} × ${updated.productName}. The escrow was released.`,
     });
 
     await deliverWebhook(merchant, 'order.claimed', {

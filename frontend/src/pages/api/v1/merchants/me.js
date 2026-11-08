@@ -57,6 +57,9 @@ function sanitizeConfig(input) {
     }
     config.mode = input.mode;
   }
+  if (typeof input.emailNotifications === 'boolean') {
+    config.emailNotifications = input.emailNotifications;
+  }
   return config;
 }
 
@@ -98,6 +101,13 @@ export default async function handler(req, res) {
         throw new ApiError(400, 'Enter a valid contact email');
       }
       patch.email = email;
+    }
+    if (req.body?.notificationEmail !== undefined) {
+      const value = String(req.body.notificationEmail || '').trim();
+      if (value && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) {
+        throw new ApiError(400, 'Enter a valid notification email');
+      }
+      patch.notificationEmail = value;
     }
     if (req.body?.domains !== undefined || req.body?.domain !== undefined) {
       patch.domains = sanitizeDomains(req.body.domains ?? req.body.domain);

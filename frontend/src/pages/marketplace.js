@@ -18,6 +18,7 @@ import { listMarketplaceProducts } from '../lib/server/store';
 import { formatFiatMinor } from '../lib/widgetCore.mjs';
 import { useSignedInMerchant } from '../lib/useSignedInMerchant';
 import { PlatformNav } from '../components/PlatformNav';
+import { NotificationBell } from '../components/NotificationBell';
 import { SiteFooter } from '../components/SiteFooter';
 
 const KIND_FILTERS = [
@@ -115,6 +116,7 @@ export default function MarketplacePage({ items, merchantName }) {
               />
 
               <div className="flex items-center gap-2">
+                <NotificationBell />
                 {signedIn ? (
                   <>
                     <Link

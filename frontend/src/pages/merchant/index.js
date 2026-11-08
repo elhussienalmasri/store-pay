@@ -3,6 +3,7 @@ import Head from 'next/head';
 import Link from 'next/link';
 import { LogOut, Zap } from 'lucide-react';
 import { MerchantWidgetExperience } from '../../components/widget/MerchantWidgetExperience';
+import { NotificationBell } from '../../components/NotificationBell';
 import { PlatformNav } from '../../components/PlatformNav';
 import { SiteFooter } from '../../components/SiteFooter';
 import { useSignedInMerchant } from '../../lib/useSignedInMerchant';
@@ -51,15 +52,19 @@ export default function MerchantPage({ signedIn: initialSignedIn = false }) {
               />
 
               {signedIn ? (
-                <button
-                  onClick={handleSignOut}
-                  className="inline-flex p-2.5 rounded-xl bg-[#141624] border border-[#23273a] text-gray-400 hover:text-red-300 transition"
-                  title="Sign out"
-                >
-                  <LogOut className="w-4 h-4" />
-                </button>
+                <>
+                  <NotificationBell />
+                  <button
+                    onClick={handleSignOut}
+                    className="inline-flex p-2.5 rounded-xl bg-[#141624] border border-[#23273a] text-gray-400 hover:text-red-300 transition"
+                    title="Sign out"
+                  >
+                    <LogOut className="w-4 h-4" />
+                  </button>
+                </>
               ) : (
                 <div className="flex items-center gap-2">
+                  <NotificationBell />
                   <Link
                     href="/login"
                     className="hidden sm:inline-flex px-3 py-2 rounded-xl text-xs font-semibold text-gray-300 hover:text-white"
