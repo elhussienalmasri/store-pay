@@ -11,6 +11,8 @@ const EMPTY_DB = {
   sessions: [],
   deliveries: [],
   notifications: [],
+  payoutProfiles: [],
+  p2pListings: [],
 };
 
 let writeQueue = Promise.resolve();
@@ -31,6 +33,8 @@ async function loadDb() {
       sessions: parsed.sessions || [],
       deliveries: parsed.deliveries || [],
       notifications: parsed.notifications || [],
+      payoutProfiles: parsed.payoutProfiles || [],
+      p2pListings: parsed.p2pListings || [],
     };
   } catch (err) {
     if (err.code === 'ENOENT') return freshDb();
@@ -295,5 +299,60 @@ export async function deleteNotifications(scope) {
       (notification) => !inNotificationScope(notification, scope)
     );
     return before - db.notifications.length;
+  });
+}
+
+export async function getPayoutProfile(wallet) {
+  if (!wallet) return null;
+  const db = await readDb();
+  return db.payoutProfiles.find((profile) => profile.wallet === wallet) || null;
+}
+
+export async function upsertPayoutProfile(record) {
+  return withDb((db) => {
+    const index = db.payoutProfiles.findIndex((profile) => profile.wallet === record.wallet);
+    if (index === -1) db.payoutProfiles.push(record);
+    else db.payoutProfiles[index] = record;
+    return record;
+  });
+}
+
+export async function deletePayoutProfile(wallet) {
+  if (!wallet) return false;
+  return withDb((db) => {
+    const index = db.payoutProfiles.findIndex((profile) => profile.wallet === wallet);
+    if (index === -1) return false;
+    db.payoutProfiles.splice(index, 1);
+    return true;
+  });
+}
+
+export async function listP2PListings(wallet) {
+  const db = await readDb();
+  return db.p2pListings
+    .filter((listing) => !wallet || listing.wallet === wallet)
+    .sort((a, b) => (a.createdAt < b.createdAt ? 1 : -1));
+}
+
+export async function upsertP2PListing(record) {
+  return withDb((db) => {
+    const index = db.p2pListings.findIndex(
+      (listing) => listing.wallet === record.wallet && listing.id === record.id
+    );
+    if (index === -1) db.p2pListings.push(record);
+    else db.p2pListings[index] = record;
+    return record;
+  });
+}
+
+export async function deleteP2PListing(wallet, id) {
+  if (!wallet || !id) return false;
+  return withDb((db) => {
+    const index = db.p2pListings.findIndex(
+      (listing) => listing.wallet === wallet && listing.id === id
+    );
+    if (index === -1) return false;
+    db.p2pListings.splice(index, 1);
+    return true;
   });
 }

@@ -10,6 +10,7 @@
     "test": "node --test tests/*.test.js"
   },
   "dependencies": {
+    "@noble/curves": "^1.9.7",
     "@solana/spl-token": "^0.4.9",
     "@solana/wallet-adapter-backpack": "^0.1.14",
     "@solana/wallet-adapter-base": "^0.9.23",
