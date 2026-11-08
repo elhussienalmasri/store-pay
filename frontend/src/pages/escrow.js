@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import Head from 'next/head';
 import { useConnection } from '@solana/wallet-adapter-react';
 import { Navbar } from '../components/Navbar';
@@ -20,6 +20,9 @@ export default function EscrowApp() {
   // Escrow state
   const [escrows, setEscrows] = useState([]);
   const [isLoadingEscrows, setIsLoadingEscrows] = useState(false);
+  const [hasScannedOnce, setHasScannedOnce] = useState(false);
+  const [scanError, setScanError] = useState('');
+  const scanInFlight = useRef(false);
 
   // Transaction Modal State
   const [txModalState, setTxModalState] = useState({
@@ -47,21 +50,31 @@ export default function EscrowApp() {
 
   // Fetch open escrows from Solana Devnet RPC
   const loadEscrows = useCallback(async () => {
+    if (scanInFlight.current) return;
+    scanInFlight.current = true;
+    setIsLoadingEscrows(true);
     try {
-      setIsLoadingEscrows(true);
       const data = await fetchOpenEscrows(connection);
       setEscrows(data);
+      setScanError('');
     } catch (err) {
+      // Keep the last good list on screen and say what went wrong instead of blanking it.
       console.warn('Failed to fetch open escrows from RPC:', err);
+      const message = String(err?.message || 'The devnet scan did not answer.');
+      setScanError(message.length > 180 ? `${message.slice(0, 180)}…` : message);
     } finally {
+      scanInFlight.current = false;
       setIsLoadingEscrows(false);
+      setHasScannedOnce(true);
     }
   }, [connection]);
 
   useEffect(() => {
     loadEscrows();
-    // Poll every 15 seconds for updates
-    const interval = setInterval(loadEscrows, 15000);
+    // Poll for updates, but only while the tab is actually being looked at.
+    const interval = setInterval(() => {
+      if (document.visibilityState === 'visible') loadEscrows();
+    }, 30_000);
     return () => clearInterval(interval);
   }, [loadEscrows]);
 
@@ -114,7 +127,9 @@ export default function EscrowApp() {
           <div className="animate-in fade-in duration-300">
             <OpenEscrowsList
               escrows={escrows}
-              isLoading={isLoadingEscrows}
+              isLoading={isLoadingEscrows && !hasScannedOnce}
+              isRefreshing={isLoadingEscrows && hasScannedOnce}
+              scanError={scanError}
               onRefresh={loadEscrows}
               openTxModal={openTxModal}
             />

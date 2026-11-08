@@ -23,7 +23,7 @@ import {
   parseAnchorError,
 } from '../lib/escrowProgram';
 
-export function OpenEscrowsList({ escrows, isLoading, onRefresh, openTxModal }) {
+export function OpenEscrowsList({ escrows, isLoading, isRefreshing, scanError, onRefresh, openTxModal }) {
   const { connection } = useConnection();
   const { publicKey, sendTransaction } = useWallet();
 
@@ -281,14 +281,34 @@ export function OpenEscrowsList({ escrows, isLoading, onRefresh, openTxModal }) 
 
           <button
             onClick={onRefresh}
-            disabled={isLoading}
+            disabled={isLoading || isRefreshing}
             className="p-2 bg-[#10121a] border border-[#23273a] rounded-xl text-gray-400 hover:text-white transition disabled:opacity-50"
             title="Refresh escrows"
           >
-            <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin text-[#14F195]' : ''}`} />
+            <RefreshCw className={`w-4 h-4 ${isLoading || isRefreshing ? 'animate-spin text-[#14F195]' : ''}`} />
           </button>
         </div>
       </div>
+
+      {isRefreshing && (
+        <p className="text-[11px] text-gray-500 font-mono">Updating from devnet…</p>
+      )}
+
+      {scanError && (
+        <div className="flex items-start justify-between gap-3 p-4 bg-[#1a1015] border border-[#4d2233] rounded-2xl text-xs">
+          <span className="flex items-start gap-2 text-rose-300">
+            <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
+            <span>The list still shows the last scan that worked. {scanError}</span>
+          </span>
+          <button
+            onClick={onRefresh}
+            disabled={isRefreshing}
+            className="px-3 py-1.5 shrink-0 rounded-lg bg-[#2a1520] border border-[#4d2233] text-rose-200 font-semibold hover:text-white transition disabled:opacity-50"
+          >
+            Try again
+          </button>
+        </div>
+      )}
 
       {/* Escrow Items List */}
       {isLoading ? (
@@ -310,7 +330,7 @@ export function OpenEscrowsList({ escrows, isLoading, onRefresh, openTxModal }) 
             const metaA = mintMetadata[escrow.mintAAddress] || { decimals: 6, symbol: 'Token A', logo: '🪙' };
             const metaB = mintMetadata[escrow.mintBAddress] || { decimals: 6, symbol: 'Token B', logo: '🪙' };
 
-            const displayOffered = atomicToUi(escrow.vaultAmount, metaA.decimals);
+            const displayOffered = atomicToUi(escrow.vaultAmount, escrow.vaultDecimals ?? metaA.decimals);
             const displayReceive = atomicToUi(escrow.receive, metaB.decimals);
 
             const isMaker = publicKey && escrow.makerAddress === publicKey.toBase58();

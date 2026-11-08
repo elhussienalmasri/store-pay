@@ -9,6 +9,7 @@ import {
   createSyncNativeInstruction,
   getAssociatedTokenAddressSync,
   unpackAccount,
+  unpackMint,
 } from '@solana/spl-token';
 import {
   PROGRAM_ID,
@@ -365,61 +366,86 @@ export function decodeEscrowAccount(buffer, pubkey) {
 export async function fetchOpenEscrows(connection) {
   try {
     // Escrow account has size 114 and discriminator 1 at offset 0
-    const accounts = await connection.getProgramAccounts(PROGRAM_ID, {
-      filters: [
-        {
-          dataSize: ESCROW_ACCOUNT_SIZE,
-        },
-      ],
-    });
+    const accounts = await withDeadline(
+      connection.getProgramAccounts(PROGRAM_ID, {
+        filters: [
+          {
+            dataSize: ESCROW_ACCOUNT_SIZE,
+          },
+        ],
+      }),
+      'The open escrow scan'
+    );
 
     const parsedEscrows = [];
 
     for (const { pubkey, account } of accounts) {
       try {
-        const decoded = decodeEscrowAccount(account.data, pubkey);
-
-        // Check if the corresponding vault token account exists and has balance
-        // We find the mint program ID
-        let tokenProgramId = TOKEN_PROGRAM_ID;
-        try {
-          const mintInfo = await connection.getAccountInfo(decoded.mintA);
-          if (mintInfo && mintInfo.owner) {
-            tokenProgramId = mintInfo.owner;
-          }
-        } catch (e) {
-          // ignore
-        }
-
-        const vaultAta = deriveVaultAta(pubkey, decoded.mintA, tokenProgramId);
-        let vaultAmount = 0n;
-        let vaultExists = false;
-        let vaultDecimals = null;
-
-        try {
-          const vaultBalance = await connection.getTokenAccountBalance(vaultAta);
-          vaultAmount = BigInt(vaultBalance.value.amount);
-          vaultDecimals = vaultBalance.value.decimals;
-          vaultExists = true;
-        } catch (e) {
-          // Vault might already be closed if in transit
-        }
-
-        parsedEscrows.push({
-          ...decoded,
-          vault: vaultAta,
-          vaultAddress: vaultAta.toBase58(),
-          vaultAmount,
-          vaultExists,
-          vaultDecimals,
-          tokenProgramId,
-        });
+        parsedEscrows.push(decodeEscrowAccount(account.data, pubkey));
       } catch (err) {
         console.warn('Skipping unparsable program account:', pubkey.toBase58(), err.message);
       }
     }
 
-    return parsedEscrows;
+    // Two batched calls cover every escrow: one for the offered mints (program + decimals)
+    // and one for the vaults. Per-escrow lookups meant ~20 requests a scan, which the public
+    // devnet endpoint answers with 429 retries that can outlast the polling interval.
+    const mintKeys = [...new Set(parsedEscrows.map((e) => e.mintA.toBase58()))];
+    const mintInfos = mintKeys.length
+      ? await withDeadline(
+          connection.getMultipleAccountsInfo(mintKeys.map((k) => new PublicKey(k))),
+          'The offered-token lookup'
+        )
+      : [];
+
+    const mintMeta = new Map();
+    mintKeys.forEach((key, i) => {
+      const info = mintInfos[i];
+      if (!info) return;
+      try {
+        mintMeta.set(key, {
+          tokenProgramId: info.owner,
+          decimals: unpackMint(new PublicKey(key), info, info.owner).decimals,
+        });
+      } catch (err) {
+        console.warn('Skipping unparsable mint:', key, err.message);
+      }
+    });
+
+    const vaultKeys = parsedEscrows.map((e) => {
+      const meta = mintMeta.get(e.mintA.toBase58());
+      return deriveVaultAta(e.publicKey, e.mintA, meta ? meta.tokenProgramId : TOKEN_PROGRAM_ID);
+    });
+
+    const vaultInfos = vaultKeys.length
+      ? await withDeadline(connection.getMultipleAccountsInfo(vaultKeys), 'The vault balances')
+      : [];
+
+    return parsedEscrows.map((decoded, i) => {
+      const meta = mintMeta.get(decoded.mintA.toBase58()) || { tokenProgramId: TOKEN_PROGRAM_ID, decimals: null };
+      const vaultInfo = vaultInfos[i];
+      let vaultAmount = 0n;
+      let vaultExists = false;
+
+      if (vaultInfo) {
+        try {
+          vaultAmount = unpackAccount(vaultKeys[i], vaultInfo, meta.tokenProgramId).amount;
+          vaultExists = true;
+        } catch (err) {
+          console.warn('Skipping unreadable vault:', vaultKeys[i].toBase58(), err.message);
+        }
+      }
+
+      return {
+        ...decoded,
+        vault: vaultKeys[i],
+        vaultAddress: vaultKeys[i].toBase58(),
+        vaultAmount,
+        vaultExists,
+        vaultDecimals: meta.decimals,
+        tokenProgramId: meta.tokenProgramId,
+      };
+    });
   } catch (err) {
     console.error('Error fetching open escrows:', err);
     throw err;
