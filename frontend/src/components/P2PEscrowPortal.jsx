@@ -137,7 +137,7 @@ export function P2PEscrowPortal({ openEscrows, openTxModal, onRefresh }) {
   // Seller rejects and cancels/refunds the escrow
   async function handleSellerRejectRefund(order) {
     if (!publicKey) {
-      alert('Please connect your seller Phantom wallet.');
+      alert('Please connect your seller wallet.');
       return;
     }
 
@@ -145,7 +145,7 @@ export function P2PEscrowPortal({ openEscrows, openTxModal, onRefresh }) {
       openTxModal({
         status: 'signing',
         title: 'Reject & Refund Escrow',
-        message: 'Payment rejected. Signing transaction in Phantom to cancel escrow and reclaim tokens...',
+        message: 'Payment rejected. Approving the transaction in your wallet to cancel escrow and reclaim tokens...',
       });
 
       const escrowObj = openEscrows.find((e) => e.address === order.escrowAddress);
@@ -202,7 +202,7 @@ export function P2PEscrowPortal({ openEscrows, openTxModal, onRefresh }) {
   // Buyer claims on-chain tokens once approved by seller
   async function handleBuyerClaimTokens(order) {
     if (!publicKey) {
-      alert('Please connect your buyer Phantom wallet.');
+      alert('Please connect your buyer wallet.');
       return;
     }
 
@@ -210,7 +210,7 @@ export function P2PEscrowPortal({ openEscrows, openTxModal, onRefresh }) {
       openTxModal({
         status: 'signing',
         title: 'Claim Escrow Tokens',
-        message: 'Seller approved payment! Please sign in Phantom to receive tokens from the custodial vault.',
+        message: 'Seller approved payment! Please approve in your wallet to receive tokens from the custodial vault.',
       });
 
       const escrowObj = openEscrows.find((e) => e.address === order.escrowAddress);

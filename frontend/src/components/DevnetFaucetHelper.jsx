@@ -44,7 +44,7 @@ export function DevnetFaucetHelper() {
   // 1. Airdrop SOL
   async function handleAirdropSol() {
     if (!publicKey) {
-      alert('Please connect your Phantom wallet first.');
+      alert('Please connect your wallet first.');
       return;
     }
 
@@ -74,7 +74,7 @@ export function DevnetFaucetHelper() {
   // 2. Wrap 1 Native SOL into WSOL (SPL Token)
   async function handleWrapSol() {
     if (!publicKey) {
-      alert('Please connect your Phantom wallet first.');
+      alert('Please connect your wallet first.');
       return;
     }
 
@@ -142,7 +142,7 @@ export function DevnetFaucetHelper() {
   // 3. Create a Custom Demo SPL Token and Mint 100 to wallet
   async function handleCreateDemoToken() {
     if (!publicKey) {
-      alert('Please connect your Phantom wallet first.');
+      alert('Please connect your wallet first.');
       return;
     }
 

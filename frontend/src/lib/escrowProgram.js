@@ -401,14 +401,14 @@ export function parseAnchorError(error) {
   }
 
   if (/simulat/i.test(message)) {
-    return 'Phantom could not simulate this transaction. Switch Phantom to Solana Devnet (Settings → Developer Settings → Change Network) and make sure the wallet holds devnet SOL.';
+    return 'Your wallet could not simulate this transaction. Switch it to Solana Devnet (Settings → Developer Settings → Change Network) and make sure the wallet holds devnet SOL.';
   }
 
   if (
     message.includes('Attempt to load a program that does not exist') ||
     message.includes('ProgramAccountNotFound')
   ) {
-    return 'The escrow program is not available on the network Phantom is using. Switch Phantom to Solana Devnet.';
+    return 'The escrow program is not available on the network your wallet is using. Switch it to Solana Devnet.';
   }
 
   if (

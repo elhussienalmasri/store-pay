@@ -99,7 +99,7 @@ export function OpenEscrowsList({ escrows, isLoading, onRefresh, openTxModal }) 
   // Handle Take / Fulfill Escrow
   async function handleTake(escrow) {
     if (!publicKey) {
-      alert('Please connect your Phantom wallet.');
+      alert('Please connect your wallet.');
       return;
     }
 
@@ -108,7 +108,7 @@ export function OpenEscrowsList({ escrows, isLoading, onRefresh, openTxModal }) 
       openTxModal({
         status: 'signing',
         title: 'Fulfill Escrow Swap',
-        message: 'Please approve the swap transaction in your Phantom wallet.',
+        message: 'Please approve the swap transaction in your wallet.',
       });
 
       const ix = escrow.mintA.equals(escrow.mintB)
@@ -175,7 +175,7 @@ export function OpenEscrowsList({ escrows, isLoading, onRefresh, openTxModal }) 
   // Handle Refund / Cancel Escrow
   async function handleRefund(escrow) {
     if (!publicKey) {
-      alert('Please connect your Phantom wallet.');
+      alert('Please connect your wallet.');
       return;
     }
 
@@ -189,7 +189,7 @@ export function OpenEscrowsList({ escrows, isLoading, onRefresh, openTxModal }) 
       openTxModal({
         status: 'signing',
         title: 'Refund Escrow',
-        message: 'Please approve the refund transaction in Phantom to recover your tokens and account rent.',
+        message: 'Please approve the refund transaction in your wallet to recover your tokens and account rent.',
       });
 
       const ix = createRefundInstruction({

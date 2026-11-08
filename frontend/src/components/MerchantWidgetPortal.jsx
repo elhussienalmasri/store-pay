@@ -138,7 +138,7 @@ const { sessionId } = await res.json();
             Accept <span className="bg-gradient-to-r from-[#9945FF] to-[#14F195] bg-clip-text text-transparent">Crypto</span> on Any Website
           </h2>
           <p className="text-xs sm:text-sm text-gray-400 mt-2 leading-relaxed">
-            Let customers pay with digital dollars (USDC) or SOL directly from their Phantom wallet. Embed the "Pay with Crypto" button with 1 line of HTML, or generate secure order sessions through the API.
+            Let customers pay with digital dollars (USDC) or SOL directly from their own wallet. Embed the "Pay with Crypto" button with 1 line of HTML, or generate secure order sessions through the API.
           </p>
         </div>
       </div>

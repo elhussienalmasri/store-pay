@@ -161,7 +161,7 @@ export function MakeEscrowCard({ onEscrowCreated, openTxModal }) {
   async function handleMakeEscrow(e) {
     e.preventDefault();
     if (!publicKey) {
-      alert('Please connect your Phantom wallet first.');
+      alert('Please connect your wallet first.');
       return;
     }
 
@@ -180,7 +180,7 @@ export function MakeEscrowCard({ onEscrowCreated, openTxModal }) {
       openTxModal({
         status: 'signing',
         title: 'Approve Escrow Creation',
-        message: `Please sign the transaction in Phantom to deposit ${amountA} tokens into the escrow vault.`,
+        message: `Please approve the transaction in your wallet to deposit ${amountA} tokens into the escrow vault.`,
       });
 
       const depositAtomic = uiToAtomic(amountA, mintADetails.decimals);
@@ -430,7 +430,7 @@ export function MakeEscrowCard({ onEscrowCreated, openTxModal }) {
             className="w-full py-3.5 px-4 font-bold text-sm rounded-xl transition duration-200 bg-gradient-to-r from-[#9945FF] to-[#14F195] text-[#0b0c10] hover:opacity-95 active:scale-[0.99] disabled:opacity-40 disabled:cursor-not-allowed shadow-lg shadow-purple-500/10"
           >
             {!publicKey
-              ? 'Connect Phantom to Create Escrow'
+              ? 'Connect your wallet to create escrow'
               : isSubmitting
               ? 'Preparing Transaction...'
               : 'Create Escrow & Deposit'}

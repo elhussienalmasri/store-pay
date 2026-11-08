@@ -42,7 +42,7 @@ export function TransactionModal({ isOpen, status, title, message, txSignature, 
         {/* Title */}
         <h3 className="text-xl font-bold text-white mb-2">
           {title || (
-            status === 'signing' ? 'Approve in Phantom' :
+            status === 'signing' ? 'Approve in your wallet' :
             status === 'confirming' ? 'Confirming on Devnet' :
             status === 'success' ? 'Transaction Confirmed' :
             'Transaction Failed'
@@ -52,7 +52,7 @@ export function TransactionModal({ isOpen, status, title, message, txSignature, 
         {/* Message */}
         <p className="text-sm text-gray-300 mb-5 leading-relaxed break-words">
           {message || (
-            status === 'signing' ? 'Please review and approve the transaction in your Phantom wallet extension.' :
+            status === 'signing' ? 'Please review and approve the transaction in your wallet.' :
             status === 'confirming' ? 'Broadcasting to Solana Devnet validators. Usually takes 1–3 seconds.' :
             status === 'success' ? 'Your escrow instruction has been executed and confirmed on-chain!' :
             'An error occurred while executing the transaction.'
