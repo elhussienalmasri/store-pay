@@ -275,18 +275,6 @@ export async function markNotificationsRead(scope) {
   });
 }
 
-export async function markNotificationRead(id, scope) {
-  if (!id || !scope) return false;
-  return withDb((db) => {
-    const notification = db.notifications.find(
-      (item) => item.id === id && inNotificationScope(item, scope)
-    );
-    if (!notification) return false;
-    notification.read = true;
-    return true;
-  });
-}
-
 export async function deleteNotification(id, scope) {
   if (!id || !scope) return false;
   return withDb((db) => {

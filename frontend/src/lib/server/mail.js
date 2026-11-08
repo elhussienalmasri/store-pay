@@ -4,16 +4,12 @@ const RESEND_ENDPOINT = 'https://api.resend.com/emails';
 
 let smtpTransport = null;
 
-export function smtpConfigured() {
+function smtpConfigured() {
   return Boolean(process.env.SMTP_HOST && process.env.MAIL_FROM);
 }
 
-export function resendConfigured() {
+function resendConfigured() {
   return Boolean(process.env.RESEND_API_KEY && process.env.MAIL_FROM);
-}
-
-export function mailConfigured() {
-  return smtpConfigured() || resendConfigured();
 }
 
 function getSmtpTransport() {
@@ -41,14 +37,14 @@ function escapeHtml(value) {
     .replace(/"/g, '&quot;');
 }
 
-async function sendViaSmtp({ to, subject, text, html }) {
+async function sendViaSmtp({ to, subject, text }) {
   try {
     const info = await getSmtpTransport().sendMail({
       from: process.env.MAIL_FROM,
       to,
       subject,
       text,
-      html: html || `<p>${escapeHtml(text)}</p>`,
+      html: `<p>${escapeHtml(text)}</p>`,
     });
     return { sent: true, id: info?.messageId || null, transport: 'smtp' };
   } catch (err) {
@@ -56,7 +52,7 @@ async function sendViaSmtp({ to, subject, text, html }) {
   }
 }
 
-async function sendViaResend({ to, subject, text, html }) {
+async function sendViaResend({ to, subject, text }) {
   try {
     const response = await fetch(RESEND_ENDPOINT, {
       method: 'POST',
@@ -69,7 +65,7 @@ async function sendViaResend({ to, subject, text, html }) {
         to: [to],
         subject,
         text,
-        html: html || `<p>${escapeHtml(text)}</p>`,
+        html: `<p>${escapeHtml(text)}</p>`,
       }),
     });
     const data = await response.json().catch(() => ({}));
@@ -86,15 +82,15 @@ async function sendViaResend({ to, subject, text, html }) {
   }
 }
 
-export async function sendMail({ to, subject, text, html }) {
+export async function sendMail({ to, subject, text }) {
   if (!to) return { sent: false, reason: 'no-recipient' };
 
   if (smtpConfigured()) {
-    return sendViaSmtp({ to, subject, text, html });
+    return sendViaSmtp({ to, subject, text });
   }
 
   if (resendConfigured()) {
-    return sendViaResend({ to, subject, text, html });
+    return sendViaResend({ to, subject, text });
   }
 
   console.info(
