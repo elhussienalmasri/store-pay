@@ -22,6 +22,7 @@ import {
   payDirect,
   refundEscrow,
   requoteSession,
+  confirmReceipt,
 } from '../../lib/widgetCheckout';
 import { getExplorerUrl } from '../../lib/constants';
 import { statusLabel } from '../../lib/widgetCore.mjs';
@@ -55,7 +56,7 @@ export default function CheckoutPage() {
   const [session, setSession] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [action, setAction] = useState(null); // 'pay' | 'refund' | 'requote'
+  const [action, setAction] = useState(null); // 'pay' | 'refund' | 'requote' | 'confirm'
   const [txSignature, setTxSignature] = useState('');
   const notifiedRef = useRef(false);
   const [embedded, setEmbedded] = useState(false);
@@ -210,6 +211,20 @@ export default function CheckoutPage() {
     }
   }
 
+  async function handleConfirm() {
+    if (!session) return;
+    setAction('confirm');
+    setError('');
+    try {
+      const data = await confirmReceipt(session.id, token);
+      setSession(data.session);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setAction(null);
+    }
+  }
+
   async function handleRequote() {
     if (!session) return;
     setAction('requote');
@@ -257,6 +272,9 @@ export default function CheckoutPage() {
   const settled = ['claimed', 'paid'].includes(session.status);
   const refunded = session.status === 'refunded';
   const funded = session.status === 'funded';
+  const awaitingConfirmation =
+    funded && session.channel === 'marketplace' && !session.buyerConfirmedAt;
+  const receiptConfirmed = funded && Boolean(session.buyerConfirmedAt);
   const expired = session.status === 'expired';
   const signature =
     session.signatures?.funded ||
@@ -377,8 +395,11 @@ export default function CheckoutPage() {
                     Funds are held in escrow
                   </p>
                   <p className="text-amber-200/80">
-                    The merchant can settle after delivery. Until they do, you can reclaim
-                    your payment.
+                    {awaitingConfirmation
+                      ? 'Confirm your order below once it has arrived. The seller can only claim after you confirm — until then you can reclaim your payment.'
+                      : receiptConfirmed
+                        ? 'You confirmed receipt. The seller can claim the escrow now.'
+                        : 'The merchant can settle after delivery. Until they do, you can reclaim your payment.'}
                   </p>
                 </div>
               )}
@@ -440,7 +461,7 @@ export default function CheckoutPage() {
                   <div className="rounded-2xl border border-sky-500/30 bg-sky-500/10 p-3 text-[11px] text-sky-100 space-y-1">
                     <p className="font-semibold">Devnet checkout</p>
                     <p className="text-sky-200/80">
-                      Set Phantom to <strong>Solana Devnet</strong> (Settings → Developer
+                      Set your wallet to <strong>Solana Devnet</strong> (Settings → Developer
                       Settings → Change Network). Mainnet wallets fail transaction
                       simulation.
                     </p>
@@ -532,7 +553,29 @@ export default function CheckoutPage() {
                 </div>
               )}
 
-              {funded && (
+              {awaitingConfirmation && (
+                <button
+                  onClick={handleConfirm}
+                  disabled={action === 'confirm'}
+                  className="w-full h-11 rounded-2xl border border-emerald-500/40 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-200 text-xs font-semibold flex items-center justify-center gap-2 disabled:opacity-40"
+                >
+                  {action === 'confirm' ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <CheckCircle2 className="w-4 h-4" />
+                  )}
+                  Confirm receipt
+                </button>
+              )}
+
+              {receiptConfirmed && (
+                <p className="text-[11px] text-center text-emerald-300/80 flex items-center justify-center gap-1.5">
+                  <CheckCircle2 className="w-3.5 h-3.5" />
+                  Receipt confirmed — the seller can now claim the payment
+                </p>
+              )}
+
+              {funded && !receiptConfirmed && (
                 <button
                   onClick={handleRefund}
                   disabled={!connected || action === 'refund'}

@@ -144,6 +144,15 @@ export function effectiveSessionStatus(session, now = Date.now()) {
   return session.status;
 }
 
+export function needsBuyerConfirmation(session) {
+  return session?.channel === 'marketplace' && !session?.buyerConfirmedAt;
+}
+
+export function canSellerClaim(session, now = Date.now()) {
+  if (!session) return false;
+  return effectiveSessionStatus(session, now) === 'funded' && !needsBuyerConfirmation(session);
+}
+
 export function statusLabel(status) {
   switch (status) {
     case 'open':
@@ -220,7 +229,7 @@ export function buildApiExample({ appOrigin, productId }) {
 }
 
 export function buildInPayConfig({ appOrigin, programId, rpcUrl }) {
-  return `# EscrowPay InPay (inline payment — no popup window)
+  return `# EscrowPay inline pay (buyer pays on your own page, no popup window)
 # Server-side only: never expose the secret key to the browser.
 ESCROWPAY_SECRET_KEY=sk_live_your_secret_key
 ESCROWPAY_INPAY_API_URL=${appOrigin}

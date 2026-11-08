@@ -55,6 +55,13 @@ export function requoteSession(sessionId, token) {
   });
 }
 
+export function confirmReceipt(sessionId, token) {
+  return api(`/api/v1/sessions/${encodeURIComponent(sessionId)}/confirm`, {
+    method: 'POST',
+    body: { token },
+  });
+}
+
 async function sendAndConfirm(connection, sendTransaction, transaction, payer) {
   const { blockhash, lastValidBlockHeight } = await connection.getLatestBlockhash('confirmed');
   transaction.feePayer = payer;

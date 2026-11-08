@@ -55,7 +55,11 @@ export default async function handler(req, res) {
       session: updated,
       kind: 'order.funded',
       title: 'Order funded',
-      body: `${updated.quantity} × ${updated.productName} (${amount}) is funded. Claim it when you deliver.`,
+      body: `${updated.quantity} × ${updated.productName} (${amount}) is funded. ${
+        updated.channel === 'marketplace'
+          ? 'You can claim it once the buyer confirms receipt.'
+          : 'Claim it when you deliver.'
+      }`,
     });
     await notifyBuyer({
       merchant,

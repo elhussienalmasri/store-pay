@@ -5,6 +5,7 @@ import { findSessionById, patchSession } from '../../../../../lib/server/store';
 import { notifyBuyer } from '../../../../../lib/server/notifications';
 import { sessionMerchantView } from '../../../../../lib/server/views';
 import { deliverWebhook } from '../../../../../lib/server/webhooks';
+import { needsBuyerConfirmation } from '../../../../../lib/widgetCore.mjs';
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
@@ -24,6 +25,9 @@ export default async function handler(req, res) {
     }
     if (session.status !== 'funded' || !session.escrowAddress) {
       throw new ApiError(409, `Order cannot be claimed in status ${session.status}`);
+    }
+    if (needsBuyerConfirmation(session)) {
+      throw new ApiError(409, 'The buyer has not confirmed receipt yet');
     }
 
     const signature = String(req.body?.signature || '');

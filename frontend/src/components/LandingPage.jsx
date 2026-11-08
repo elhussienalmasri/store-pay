@@ -19,6 +19,7 @@ import {
 } from 'lucide-react';
 import { CopyButton } from './widget/WidgetUi';
 import { PlatformNav } from './PlatformNav';
+import { useSignedInMerchant } from '../lib/useSignedInMerchant';
 
 const EMBED_SNIPPET = `<!-- EscrowPay merchant widget -->
 <script src="https://your-escrowpay.app/widget/v1.js" async></script>
@@ -44,7 +45,7 @@ const STEPS = [
   {
     icon: Receipt,
     title: 'Deliver, then claim',
-    body: 'Deliver the item or service and claim from the dashboard. Buyers can reclaim until you claim.',
+    body: 'Deliver the item or service. On marketplace listings the buyer confirms receipt first, then you claim from the dashboard.',
   },
 ];
 
@@ -86,7 +87,7 @@ const PLATFORMS = [
     icon: ShoppingBag,
     label: 'Marketplace',
     title: 'Buy and sell with escrow',
-    body: 'Every seller’s products and services in one catalog. Search, open the seller’s link, and pay into a vault the seller can only claim after delivery.',
+    body: 'Every seller’s products and services in one catalog. Search, open the seller’s link, and pay into a vault the seller can only claim after you confirm delivery.',
     cta: 'Browse listings',
     href: '/marketplace',
     primary: true,
@@ -196,6 +197,7 @@ function CheckoutPreview() {
 }
 
 export function LandingPage() {
+  const { signedIn } = useSignedInMerchant();
   return (
     <>
       <Head>
@@ -252,19 +254,31 @@ export function LandingPage() {
             </nav>
 
             <div className="flex items-center gap-2">
-              <Link
-                href="/login"
-                className="px-3 py-2 rounded-xl text-xs font-semibold text-gray-300 hover:text-white"
-              >
-                Sign in
-              </Link>
-              <Link
-                href="/signup"
-                className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-gradient-to-r from-[#9945FF] to-[#14F195] text-[#0b0c12] text-xs font-bold hover:opacity-90 transition"
-              >
-                Get started
-                <ArrowRight className="w-3.5 h-3.5" />
-              </Link>
+              {signedIn ? (
+                <Link
+                  href="/merchant"
+                  className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-gradient-to-r from-[#9945FF] to-[#14F195] text-[#0b0c12] text-xs font-bold hover:opacity-90 transition"
+                >
+                  Create widget
+                  <ArrowRight className="w-3.5 h-3.5" />
+                </Link>
+              ) : (
+                <>
+                  <Link
+                    href="/login"
+                    className="px-3 py-2 rounded-xl text-xs font-semibold text-gray-300 hover:text-white"
+                  >
+                    Sign in
+                  </Link>
+                  <Link
+                    href="/signup"
+                    className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-gradient-to-r from-[#9945FF] to-[#14F195] text-[#0b0c12] text-xs font-bold hover:opacity-90 transition"
+                  >
+                    Get started
+                    <ArrowRight className="w-3.5 h-3.5" />
+                  </Link>
+                </>
+              )}
             </div>
             </div>
 

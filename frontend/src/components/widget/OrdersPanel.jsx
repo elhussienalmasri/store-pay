@@ -200,6 +200,11 @@ export function OrdersPanel({ secret, merchant, onChanged }) {
                             instant
                           </span>
                         )}
+                        {order.awaitingBuyerConfirmation && (
+                          <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-amber-500/10 border border-amber-500/30 text-amber-300">
+                            awaiting buyer confirmation
+                          </span>
+                        )}
                       </div>
                       <p className="text-[11px] text-gray-500 mt-1">
                         {new Date(order.createdAt).toLocaleString()} ·{' '}

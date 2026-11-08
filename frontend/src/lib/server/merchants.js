@@ -99,6 +99,7 @@ export async function createMerchant({
       priceMinor: 1000,
       currency: 'USD',
       active: true,
+      listed: false,
     });
   } catch (err) {
     console.warn('[escrowpay] could not create sample product:', err.message);

@@ -1,8 +1,10 @@
 import {
+  canSellerClaim,
   effectiveSessionStatus,
   formatFiatMinor,
   formatSol,
   isQuoteExpired,
+  needsBuyerConfirmation,
 } from '../widgetCore.mjs';
 
 export function productView(product) {
@@ -74,6 +76,8 @@ export function sessionPublicView(session, merchant) {
       buttonText: merchant.config?.buttonText || 'Pay with crypto',
     },
     buyer: session.buyer || null,
+    channel: session.channel || null,
+    buyerConfirmedAt: session.buyerConfirmedAt || null,
     escrowAddress: session.escrowAddress || null,
     signatures,
     merchantOrderId: session.merchantOrderId || null,
@@ -101,7 +105,8 @@ export function sessionMerchantView(session) {
     settlementLamports: session.settlementLamports,
     solUsd: session.solUsd,
     status,
-    canClaim: status === 'funded',
+    canClaim: canSellerClaim(session),
+    awaitingBuyerConfirmation: needsBuyerConfirmation(session),
     payoutWallet: session.payoutWallet,
     updatedAt: session.updatedAt,
   };
