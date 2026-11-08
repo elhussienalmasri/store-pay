@@ -340,7 +340,7 @@ export function WidgetConfigPanel({ secret, merchant, products, onChanged }) {
           <div className="flex items-center justify-between">
             <h3 className="text-sm font-bold text-white flex items-center gap-2">
               <Code2 className="w-4 h-4 text-[#14F195]" />
-              Embed snippet
+              Popup pay
             </h3>
             <CopyButton value={snippet} label="Copy HTML" />
           </div>
@@ -374,15 +374,15 @@ export function WidgetConfigPanel({ secret, merchant, products, onChanged }) {
           <div className="flex items-center justify-between">
             <h3 className="text-sm font-bold text-white flex items-center gap-2">
               <Zap className="w-4 h-4 text-[#14F195]" />
-              InPay inline config
+              Inline pay
             </h3>
-            <CopyButton value={inpayConfig} label="Copy .env" />
+            <CopyButton value={inpayConfig} label="Copy config" />
           </div>
           <pre className="text-[10px] leading-relaxed text-gray-300 bg-[#0a0c12] border border-[#1e2233] rounded-xl p-3 overflow-x-auto whitespace-pre-wrap break-all">
             {inpayConfig}
           </pre>
           <p className="text-[11px] text-gray-500">
-            Lets buyers pay inline on your site with Phantom — no popup window.
+            Lets buyers pay inline on your site from their own wallet — no popup window.
             Your server calls {`{ESCROWPAY_INPAY_API_URL}/api/v1/inpay/sessions`} with
             the secret key (escrow or "buyer chooses" mode only), and the returned
             session is funded straight from your checkout page.

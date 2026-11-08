@@ -132,7 +132,8 @@ export function MerchantOnboarding({ onReady }) {
   data-quantity="1"
   data-mode="escrow"
 >Pay with crypto</button>`;
-    const inpayEnv = `ESCROWPAY_SECRET_KEY=${created.secretKey}
+    const inpayEnv = `# Replace with your secret key
+ESCROWPAY_SECRET_KEY=sk_live_your_secret_key
 ESCROWPAY_INPAY_API_URL=${origin}
 NEXT_PUBLIC_ESCROWPAY_INPAY=1
 NEXT_PUBLIC_ESCROWPAY_PROGRAM_ID=${PROGRAM_ID_STRING}
@@ -148,25 +149,23 @@ NEXT_PUBLIC_ESCROWPAY_RPC_URL=${DEVNET_RPC_URL}`;
             <div>
               <h2 className="text-lg font-black text-white">Store created</h2>
               <p className="text-xs text-gray-400 mt-1">
-                Save your secret key now. It is shown once and is required for
+                Your keys are ready. The secret key is needed only for
                 server-to-server API calls.
               </p>
             </div>
           </div>
 
           <div className="rounded-2xl border border-amber-500/30 bg-amber-500/5 p-4 space-y-2">
-            <div className="flex items-center justify-between gap-3">
-              <span className="text-[11px] font-semibold uppercase tracking-wider text-amber-300">
-                Secret key (sk_live)
-              </span>
-              <CopyButton value={created.secretKey} label="Copy secret" />
-            </div>
-            <code className="block text-[11px] text-amber-100 break-all font-mono">
-              {created.secretKey}
+            <span className="text-[11px] font-semibold uppercase tracking-wider text-amber-300">
+              Secret key (sk_live)
+            </span>
+            <code className="block text-[11px] text-amber-100 font-mono">
+              your secret key
             </code>
             <p className="text-[11px] text-amber-200/70">
-              Keep this out of the browser on production sites. Your publishable
-              key is safe for the widget snippet.
+              The secret key is never shown on this page. It is stored in this
+              browser for the dashboard and you use it yourself on your server.
+              Generate a new one from Settings if it is lost.
             </p>
           </div>
 
@@ -199,7 +198,7 @@ NEXT_PUBLIC_ESCROWPAY_RPC_URL=${DEVNET_RPC_URL}`;
                 }`}
               >
                 <ShieldCheck className="w-3.5 h-3.5" />
-                Escrow
+                Popup pay
               </button>
               <button
                 type="button"
@@ -209,18 +208,18 @@ NEXT_PUBLIC_ESCROWPAY_RPC_URL=${DEVNET_RPC_URL}`;
                 }`}
               >
                 <Zap className="w-3.5 h-3.5" />
-                InPay
+                Inline pay
               </button>
             </div>
 
             <div className="rounded-2xl bg-[#10121a] border border-[#1e2233] p-4 space-y-2">
               <div className="flex items-center justify-between gap-3">
                 <span className="text-[11px] font-semibold uppercase tracking-wider text-gray-400">
-                  {channel === 'inpay' ? 'InPay .env' : 'Escrow embed snippet'}
+                  {channel === 'inpay' ? 'Inline pay config' : 'Popup pay snippet'}
                 </span>
                 <CopyButton
                   value={channel === 'inpay' ? inpayEnv : escrowSnippet}
-                  label={channel === 'inpay' ? 'Copy .env' : 'Copy HTML'}
+                  label={channel === 'inpay' ? 'Copy config' : 'Copy HTML'}
                 />
               </div>
               <pre className="text-[10px] leading-relaxed text-gray-300 bg-[#0a0c12] border border-[#1e2233] rounded-xl p-3 overflow-x-auto whitespace-pre-wrap break-all">
@@ -228,8 +227,8 @@ NEXT_PUBLIC_ESCROWPAY_RPC_URL=${DEVNET_RPC_URL}`;
               </pre>
               <p className="text-[10px] text-gray-500">
                 {channel === 'inpay'
-                  ? 'Inline payment for your own checkout: no popup. Keep the secret key on your server only.'
-                  : 'Popup checkout for your storefront. The publishable key is safe in page HTML.'}
+                  ? 'Buyers pay inline on your own checkout page — no popup window.'
+                  : 'A payment button that opens checkout in a popup. The publishable key is safe in page HTML.'}
               </p>
             </div>
           </div>
