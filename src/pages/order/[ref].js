@@ -4,6 +4,8 @@ import { formatPrice } from '../../lib/money';
 import { getOrder } from '../../lib/db';
 
 export default function OrderPage({ order }) {
+  const isPaid = Boolean(order.payment);
+
   return (
     <div className="space-y-6 max-w-2xl mx-auto">
       <Head>
@@ -11,12 +13,24 @@ export default function OrderPage({ order }) {
       </Head>
 
       <div className="panel p-8 space-y-3 text-center">
-        <p className="text-xs uppercase tracking-wider text-mint font-bold">{order.status}</p>
-        <h1 className="text-2xl font-extrabold text-white">Order placed</h1>
+        <p className="text-xs uppercase tracking-wider text-mint font-bold">
+          {isPaid ? 'Paid' : 'No payment taken'}
+        </p>
+        <h1 className="text-2xl font-extrabold text-white">
+          {isPaid ? 'Payment received' : 'Order placed'}
+        </h1>
         <p className="text-sm text-gray-400">
           Reference <span className="font-mono text-white">{order.reference}</span> ·{' '}
           {new Date(order.createdAt).toLocaleString()}
         </p>
+        {isPaid && (
+          <>
+            <p className="text-sm text-gray-400">{order.payment.display} paid</p>
+            <p className="text-sm text-gray-400">
+              Your payment is confirmed and held in escrow. The seller can claim it after delivery.
+            </p>
+          </>
+        )}
       </div>
 
       <div className="panel divide-y divide-line">

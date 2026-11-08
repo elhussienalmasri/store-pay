@@ -1,11 +1,11 @@
 import Head from 'next/head';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { EmptyState, QuantityPicker } from '../components/ShopUi';
 import { clearCart, readCart, removeFromCart, setQuantity } from '../lib/cart';
 import { formatPrice } from '../lib/money';
-import { lineTotal } from '../lib/orders';
+import { lineTotal, validateCustomer } from '../lib/orders';
 import { fetchUser } from '../lib/session';
 
 const FIELDS = [
@@ -13,6 +13,57 @@ const FIELDS = [
   { key: 'email', label: 'Email', type: 'email', autoComplete: 'email', placeholder: 'you@example.com' },
   { key: 'phone', label: 'Phone', type: 'tel', autoComplete: 'tel', placeholder: '+1 555 0100' },
 ];
+
+const ESCROW_ID = process.env.NEXT_PUBLIC_ESCROWPAY_ID || '';
+const ESCROW_ORIGIN = (process.env.NEXT_PUBLIC_ESCROWPAY_ORIGIN || '').replace(/\/+$/, '');
+
+function InPay({ order, onPaid, onError, onReset }) {
+  const host = useRef(null);
+  const handlers = useRef({});
+  handlers.current = { onPaid, onError, onReset };
+  const pay = useRef(null);
+  const [loaded, setLoaded] = useState(false);
+
+  useEffect(() => {
+    const node = host.current;
+    if (!ESCROW_ID || !ESCROW_ORIGIN) {
+      handlers.current.onError?.('EscrowPay is not configured for this store.', true);
+      return undefined;
+    }
+    const reset = (event) => {
+      if (event.detail?.escrowId === ESCROW_ID) handlers.current.onReset?.();
+    };
+    window.addEventListener('escrowpay:reset', reset);
+    const script = document.createElement('script');
+    script.src = `${ESCROW_ORIGIN}/inpay/v1.js?escrow_id=${encodeURIComponent(ESCROW_ID)}`;
+    script.async = true;
+    script.dataset.target = 'escrowpay-inpay';
+    script.onload = () => {
+      pay.current = window.EscrowPayInPay?.pay;
+      if (typeof pay.current !== 'function') {
+        handlers.current.onError?.('EscrowPay could not start. Reload the page and try again.', true);
+        return;
+      }
+      setLoaded(true);
+    };
+    script.onerror = () => handlers.current.onError?.('EscrowPay could not load. Check your connection and reload the page.', true);
+    node.appendChild(script);
+    return () => {
+      window.removeEventListener('escrowpay:reset', reset);
+      node.replaceChildren();
+      script.remove();
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!order || !loaded || !pay.current) return;
+    pay.current(order)
+      .then((payment) => handlers.current.onPaid?.(payment))
+      .catch((error) => handlers.current.onError?.(error.message, error.canRetry !== false));
+  }, [order, loaded]);
+
+  return <div id="escrowpay-inpay" ref={host} aria-hidden="true" style={{ position: 'absolute', width: 1, height: 1, overflow: 'hidden', opacity: 0, pointerEvents: 'none' }} />;
+}
 
 export default function CheckoutPage() {
   const router = useRouter();
@@ -26,6 +77,9 @@ export default function CheckoutPage() {
   const [errors, setErrors] = useState({});
   const [formError, setFormError] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [paying, setPaying] = useState(false);
+  const [payError, setPayError] = useState('');
+  const [pendingOrder, setPendingOrder] = useState(null);
 
   useEffect(() => {
     setCart(readCart());
@@ -74,13 +128,21 @@ export default function CheckoutPage() {
     setErrors({});
     setFormError('');
 
+    const { errors: fieldErrors, value: cleanCustomer } = validateCustomer(customer);
+    if (Object.keys(fieldErrors).length > 0) {
+      setErrors(fieldErrors);
+      setFormError('Check the highlighted fields.');
+      setSubmitting(false);
+      return;
+    }
+
     try {
       const response = await fetch('/api/orders', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           items: lines.map((line) => ({ slug: line.product.slug, quantity: line.quantity })),
-          customer,
+          customer: cleanCustomer,
         }),
       });
       const data = await response.json();
@@ -97,6 +159,63 @@ export default function CheckoutPage() {
       setFormError('The shop did not answer. Check the connection and try again.');
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  const confirmPayment = async ({ session, reference }) => {
+    setPaying(true);
+    setPayError('');
+    try {
+      const response = await fetch('/api/escrow/paid', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ reference, session }),
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || 'The payment could not be confirmed.');
+      if (!directSlug) clearCart();
+      router.push(`/order/${data.order.reference}`);
+    } catch (error) {
+      setPayError(error.message);
+      setPaying(false);
+    }
+  };
+
+  const handlePay = async (event) => {
+    event.preventDefault();
+    setErrors({});
+    setFormError('');
+    setPayError('');
+    const { errors: fieldErrors, value: customerDetails } = validateCustomer(customer);
+    if (Object.keys(fieldErrors).length > 0) {
+      setErrors(fieldErrors);
+      setPayError('Check the highlighted fields before paying.');
+      return;
+    }
+    setPaying(true);
+    try {
+      const response = await fetch('/api/orders', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          items: lines.map((line) => ({ slug: line.product.slug, quantity: line.quantity })),
+          customer: customerDetails,
+        }),
+      });
+      const data = await response.json();
+      if (!response.ok) {
+        setErrors(data.errors || {});
+        throw new Error(data.error || 'The order could not be prepared.');
+      }
+      setPendingOrder({
+        amountMinor: data.order.totalCents,
+        currency: 'USD',
+        reference: data.order.reference,
+        description: lines.map((line) => `${line.quantity}x ${line.product.title}`).join(', ').slice(0, 120),
+      });
+    } catch (error) {
+      setPayError(error.message);
+      setPaying(false);
     }
   };
 
@@ -125,7 +244,7 @@ export default function CheckoutPage() {
       <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
         <form onSubmit={handleSubmit} className="lg:col-span-3 panel p-6 space-y-5">
           <p className="text-xs text-gray-400">
-            Delivery details only. This store does not take payment — the order is recorded and marked placed.
+            Delivery details. Pay with Solana below; your payment stays in escrow until the seller claims it.
           </p>
 
           {FIELDS.map((field) => (
@@ -164,8 +283,38 @@ export default function CheckoutPage() {
 
           {formError && <p className="text-xs text-rose-400">{formError}</p>}
 
-          <button type="submit" className="btn-primary w-full" disabled={submitting || unavailable.length > 0}>
-            {submitting ? 'Placing order…' : 'Place Order'}
+          <div className="space-y-3 border-t border-line pt-5">
+            {payError && <p className="text-xs text-rose-400" role="alert">{payError}</p>}
+            <button
+              type="button"
+              onClick={handlePay}
+              disabled={paying || submitting || unavailable.length > 0}
+              className="btn-primary w-full"
+            >
+              {paying ? 'Payment in progress…' : `Pay ${formatPrice(totalCents)} in crypto`}
+            </button>
+            <InPay
+              order={pendingOrder}
+              onPaid={confirmPayment}
+              onError={(message, canRetry) => {
+                setPayError(message);
+                setPendingOrder(null);
+                if (canRetry) setPaying(false);
+              }}
+              onReset={() => {
+                setPayError('');
+                setPendingOrder(null);
+                setPaying(false);
+              }}
+            />
+          </div>
+
+          <button
+            type="submit"
+            className="btn-secondary w-full"
+            disabled={submitting || paying || unavailable.length > 0}
+          >
+            {submitting ? 'Placing order…' : 'Place Order Without Payment'}
           </button>
         </form>
 

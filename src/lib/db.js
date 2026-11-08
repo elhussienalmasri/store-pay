@@ -13,6 +13,10 @@ function db() {
     }
     handle = new DatabaseSync(DB_PATH);
     handle.exec('PRAGMA journal_mode = WAL; PRAGMA foreign_keys = ON;');
+    const orderColumns = handle.prepare('PRAGMA table_info(orders)').all().map((column) => column.name);
+    for (const name of ['escrow_session_id', 'escrow_display']) {
+      if (!orderColumns.includes(name)) handle.exec(`ALTER TABLE orders ADD COLUMN ${name} TEXT`);
+    }
   }
   return handle;
 }
@@ -72,7 +76,8 @@ export function createOrder({ reference, customer, totalCents, items }) {
     const orderResult = connection
       .prepare(
         `INSERT INTO orders (
-           reference, customer_name, customer_email, customer_phone, shipping_address, total_cents, status, created_at
+           reference, customer_name, customer_email, customer_phone, shipping_address,
+           total_cents, status, created_at
          ) VALUES (?, ?, ?, ?, ?, ?, 'placed', ?)`
       )
       .run(
@@ -108,10 +113,19 @@ export function createOrder({ reference, customer, totalCents, items }) {
   }
 }
 
+export function markOrderPaid(reference, { escrowSessionId, display }) {
+  db()
+    .prepare('UPDATE orders SET status = ?, escrow_session_id = ?, escrow_display = ? WHERE reference = ?')
+    .run('paid', escrowSessionId, display, reference);
+  return getOrder(reference);
+}
+
 export function getOrder(reference) {
   const order = db()
     .prepare(
-      'SELECT reference, customer_name, customer_email, customer_phone, shipping_address, total_cents, status, created_at FROM orders WHERE reference = ?'
+      `SELECT reference, customer_name, customer_email, customer_phone, shipping_address,
+              total_cents, status, escrow_session_id, escrow_display, created_at
+       FROM orders WHERE reference = ?`
     )
     .get(reference);
   if (!order) return null;
@@ -127,6 +141,12 @@ export function getOrder(reference) {
     status: order.status,
     createdAt: order.created_at,
     totalCents: order.total_cents,
+    payment: order.escrow_session_id
+      ? {
+          escrowSessionId: order.escrow_session_id,
+          display: order.escrow_display,
+        }
+      : null,
     customer: {
       name: order.customer_name,
       email: order.customer_email,
