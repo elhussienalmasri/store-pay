@@ -29,6 +29,7 @@ import {
   ArrowRightLeft
 } from 'lucide-react';
 import { DEFAULT_DEVNET_TOKENS } from '../lib/constants';
+import { withDeadline, waitConfirmed } from '../lib/escrowProgram';
 
 export function DevnetFaucetHelper() {
   const { connection } = useConnection();
@@ -80,7 +81,7 @@ export function DevnetFaucetHelper() {
 
     try {
       setIsWrapping(true);
-      setActionStatus({ type: 'loading', message: 'Wrapping 1 SOL into WSOL...' });
+      setActionStatus({ type: 'loading', message: 'Checking your WSOL account on devnet...' });
 
       const wsolAta = getAssociatedTokenAddressSync(
         NATIVE_MINT,
@@ -93,7 +94,10 @@ export function DevnetFaucetHelper() {
       const transaction = new Transaction();
 
       // Check if ATA already exists
-      const ataInfo = await connection.getAccountInfo(wsolAta);
+      const ataInfo = await withDeadline(
+        connection.getAccountInfo(wsolAta),
+        'The WSOL account check'
+      );
       if (!ataInfo) {
         transaction.add(
           createAssociatedTokenAccountInstruction(
@@ -117,12 +121,17 @@ export function DevnetFaucetHelper() {
         createSyncNativeInstruction(wsolAta, TOKEN_PROGRAM_ID)
       );
 
-      const { blockhash, lastValidBlockHeight } = await connection.getLatestBlockhash('confirmed');
+      const { blockhash } = await withDeadline(
+        connection.getLatestBlockhash('confirmed'),
+        'The blockhash request'
+      );
       transaction.recentBlockhash = blockhash;
       transaction.feePayer = publicKey;
 
+      setActionStatus({ type: 'loading', message: 'Approve the wrap in your wallet...' });
       const sig = await sendTransaction(transaction, connection);
-      await connection.confirmTransaction({ signature: sig, blockhash, lastValidBlockHeight }, 'confirmed');
+      setActionStatus({ type: 'loading', message: 'Confirming the wrap on devnet...' });
+      await waitConfirmed(connection, sig);
 
       setActionStatus({
         type: 'success',

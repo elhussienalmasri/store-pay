@@ -473,3 +473,41 @@ export function parseAnchorError(error) {
 
   return message;
 }
+
+/**
+ * Race an RPC call against a deadline. connection.confirmTransaction()'s block-height strategy turns
+ * every RPC failure into -1, so a rate-limited devnet endpoint keeps it polling forever; every devnet
+ * wait goes through these two helpers so a button always ends on a result.
+ */
+export async function withDeadline(promise, label, ms = 20_000) {
+  let timer;
+  try {
+    return await Promise.race([
+      promise,
+      new Promise((_, reject) => {
+        timer = setTimeout(
+          () => reject(new Error(`${label} timed out after ${ms / 1000}s. The devnet RPC is slow or rate limiting you; try again in a minute.`)),
+          ms
+        );
+      }),
+    ]);
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+export async function waitConfirmed(connection, signature, ms = 90_000) {
+  const deadline = Date.now() + ms;
+  while (Date.now() < deadline) {
+    const { value } = await withDeadline(
+      connection.getSignatureStatuses([signature]),
+      'The confirmation check',
+      20_000
+    );
+    const status = value?.[0];
+    if (status?.err) throw new Error('Devnet rejected the transaction.');
+    if (status?.confirmationStatus === 'confirmed' || status?.confirmationStatus === 'finalized') return;
+    await new Promise((resolve) => setTimeout(resolve, 2_000));
+  }
+  throw new Error(`Devnet had not confirmed the transaction after ${ms / 1000}s. It may still land; check your balance before sending another.`);
+}
