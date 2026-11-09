@@ -2,6 +2,7 @@ import Head from 'next/head';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { ClientPay } from '../components/ClientPay';
 import { EmptyState, QuantityPicker } from '../components/ShopUi';
 import { clearCart, readCart, removeFromCart, setQuantity } from '../lib/cart';
 import { formatPrice } from '../lib/money';
@@ -14,8 +15,8 @@ const FIELDS = [
   { key: 'phone', label: 'Phone', type: 'tel', autoComplete: 'tel', placeholder: '+1 555 0100' },
 ];
 
-const ESCROW_ID = process.env.NEXT_PUBLIC_ESCROWPAY_ID || '';
-const ESCROW_ORIGIN = (process.env.NEXT_PUBLIC_ESCROWPAY_ORIGIN || '').replace(/\/+$/, '');
+const STOREPAY_ID = process.env.NEXT_PUBLIC_STOREPAY_ID || '';
+const STOREPAY_ORIGIN = (process.env.NEXT_PUBLIC_STOREPAY_ORIGIN || '').replace(/\/+$/, '');
 
 function InPay({ order, onPaid, onError, onReset }) {
   const host = useRef(null);
@@ -26,27 +27,27 @@ function InPay({ order, onPaid, onError, onReset }) {
 
   useEffect(() => {
     const node = host.current;
-    if (!ESCROW_ID || !ESCROW_ORIGIN) {
-      handlers.current.onError?.('EscrowPay is not configured for this store.', true);
+    if (!STOREPAY_ID || !STOREPAY_ORIGIN) {
+      handlers.current.onError?.('StorePay is not configured for this store.', true);
       return undefined;
     }
     const reset = (event) => {
-      if (event.detail?.escrowId === ESCROW_ID) handlers.current.onReset?.();
+      if (event.detail?.escrowId === STOREPAY_ID) handlers.current.onReset?.();
     };
     window.addEventListener('escrowpay:reset', reset);
     const script = document.createElement('script');
-    script.src = `${ESCROW_ORIGIN}/inpay/v1.js?escrow_id=${encodeURIComponent(ESCROW_ID)}`;
+    script.src = `${STOREPAY_ORIGIN}/inpay/v1.js?escrow_id=${encodeURIComponent(STOREPAY_ID)}`;
     script.async = true;
     script.dataset.target = 'escrowpay-inpay';
     script.onload = () => {
       pay.current = window.EscrowPayInPay?.pay;
       if (typeof pay.current !== 'function') {
-        handlers.current.onError?.('EscrowPay could not start. Reload the page and try again.', true);
+        handlers.current.onError?.('StorePay could not start. Reload the page and try again.', true);
         return;
       }
       setLoaded(true);
     };
-    script.onerror = () => handlers.current.onError?.('EscrowPay could not load. Check your connection and reload the page.', true);
+    script.onerror = () => handlers.current.onError?.('StorePay could not load. Check your connection and reload the page.', true);
     node.appendChild(script);
     return () => {
       window.removeEventListener('escrowpay:reset', reset);
@@ -80,6 +81,7 @@ export default function CheckoutPage() {
   const [paying, setPaying] = useState(false);
   const [payError, setPayError] = useState('');
   const [pendingOrder, setPendingOrder] = useState(null);
+  const [clientPayPayment, setClientPayPayment] = useState(null);
 
   useEffect(() => {
     setCart(readCart());
@@ -181,11 +183,12 @@ export default function CheckoutPage() {
     }
   };
 
-  const handlePay = async (event) => {
-    event.preventDefault();
+  const handlePay = async (method) => {
     setErrors({});
     setFormError('');
     setPayError('');
+    setPendingOrder(null);
+    setClientPayPayment(null);
     const { errors: fieldErrors, value: customerDetails } = validateCustomer(customer);
     if (Object.keys(fieldErrors).length > 0) {
       setErrors(fieldErrors);
@@ -207,12 +210,26 @@ export default function CheckoutPage() {
         setErrors(data.errors || {});
         throw new Error(data.error || 'The order could not be prepared.');
       }
-      setPendingOrder({
+      const paymentOrder = {
         amountMinor: data.order.totalCents,
         currency: 'USD',
         reference: data.order.reference,
         description: lines.map((line) => `${line.quantity}x ${line.product.title}`).join(', ').slice(0, 120),
-      });
+      };
+      if (method === 'client-pay') {
+        const clientPayResponse = await fetch('/api/escrow/client-pay', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ reference: paymentOrder.reference }),
+        });
+        const clientPayData = await clientPayResponse.json();
+        if (!clientPayResponse.ok) {
+          throw new Error(clientPayData.error || 'Client Pay could not start.');
+        }
+        setClientPayPayment({ reference: paymentOrder.reference, session: clientPayData.session });
+      } else {
+        setPendingOrder(paymentOrder);
+      }
     } catch (error) {
       setPayError(error.message);
       setPaying(false);
@@ -287,11 +304,19 @@ export default function CheckoutPage() {
             {payError && <p className="text-xs text-rose-400" role="alert">{payError}</p>}
             <button
               type="button"
-              onClick={handlePay}
+              onClick={() => handlePay('inpay')}
               disabled={paying || submitting || unavailable.length > 0}
               className="btn-primary w-full"
             >
-              {paying ? 'Payment in progress…' : `Pay ${formatPrice(totalCents)} in crypto`}
+              {paying ? 'Payment in progress…' : `Pay ${formatPrice(totalCents)} with InPay`}
+            </button>
+            <button
+              type="button"
+              onClick={() => handlePay('client-pay')}
+              disabled={paying || submitting || unavailable.length > 0}
+              className="btn-secondary w-full"
+            >
+              {paying ? 'Payment in progress…' : 'Pay with Client Pay popup'}
             </button>
             <InPay
               order={pendingOrder}
@@ -304,6 +329,16 @@ export default function CheckoutPage() {
               onReset={() => {
                 setPayError('');
                 setPendingOrder(null);
+                setPaying(false);
+              }}
+            />
+            <ClientPay
+              origin={STOREPAY_ORIGIN}
+              payment={clientPayPayment}
+              onPaid={({ session, reference }) => confirmPayment({ session, reference })}
+              onError={(message) => {
+                setPayError(message);
+                setClientPayPayment(null);
                 setPaying(false);
               }}
             />
