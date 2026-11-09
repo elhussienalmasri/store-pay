@@ -1,6 +1,11 @@
 import { PublicKey } from '@solana/web3.js';
 
-export const PROGRAM_ID_STRING = process.env.NEXT_PUBLIC_PROGRAM_ID || '2RUCd28fjPeXaLGFbgo45KEuFdMxDCpjuHreenC5WquF';
+export const PROGRAM_ID_STRING = process.env.NEXT_PUBLIC_PROGRAM_ID;
+
+if (!PROGRAM_ID_STRING) {
+  throw new Error('NEXT_PUBLIC_PROGRAM_ID must be configured.');
+}
+
 export const PROGRAM_ID = new PublicKey(PROGRAM_ID_STRING);
 
 export const DEVNET_RPC_URL = process.env.NEXT_PUBLIC_SOLANA_RPC_URL || 'https://api.devnet.solana.com';

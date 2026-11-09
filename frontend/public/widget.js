@@ -13,7 +13,6 @@
   // Constants
   const DEVNET_RPC = 'https://api.devnet.solana.com';
   const DEVNET_USDC_MINT = '4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU';
-  const PROGRAM_ID = '2RUCd28fjPeXaLGFbgo45KEuFdMxDCpjuHreenC5WquF';
 
   // Widget State
   let activeModal = null;
@@ -99,7 +98,11 @@
 
     const amountUsd = Number(config.priceUsd || config.amountUsd || 10);
     const itemName = config.itemName || 'Store Product';
-    const merchantWallet = config.merchantWallet || '2RUCd28fjPeXaLGFbgo45KEuFdMxDCpjuHreenC5WquF';
+    const merchantWallet = config.merchantWallet || '';
+    if (!merchantWallet) {
+      alert('A merchant payout wallet is required to open checkout.');
+      return;
+    }
     const mode = config.mode || 'both'; // 'direct', 'escrow', or 'both'
 
     let selectedCurrency = 'USDC'; // 'USDC' or 'SOL'

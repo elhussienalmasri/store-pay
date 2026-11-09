@@ -66,11 +66,15 @@ export function MerchantWidgetPortal() {
   }, []);
 
   function handleTestCheckout(product) {
+    if (!merchantWallet) {
+      alert('Connect or enter a merchant payout wallet before testing checkout.');
+      return;
+    }
     if (typeof window !== 'undefined' && window.CryptoCheckout) {
       window.CryptoCheckout.open({
         priceUsd: product.priceUsd,
         itemName: product.name,
-        merchantWallet: merchantWallet || '2RUCd28fjPeXaLGFbgo45KEuFdMxDCpjuHreenC5WquF',
+        merchantWallet,
         mode: selectedMode,
       });
     } else {
