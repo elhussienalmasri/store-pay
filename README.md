@@ -37,6 +37,7 @@ StorePay shows in-app notifications for account activity, sales, purchases, and 
 - **Wallet integration:** Solana Wallet Adapter with support for wallets such as Phantom.
 - **Smart contracts:** Rust and Anchor
 - **Server and APIs:** Next.js API routes
+- **Database:** PostgreSQL for StorePay application data; Solana remains the source of truth for escrow accounts and token vaults.
 - **Client-store integration:** StorePay receives and manages payment requests from external client stores, such as `shop-app`.
 
 ## 🧭 Pages
@@ -102,7 +103,7 @@ MAIL_FROM=StorePay <payments@example.com>
 
 ## ✅ Requirements
 
-- Node.js 18 or newer
+- Node.js 20 or newer
 - npm
 - Rust and Cargo
 - Solana CLI
@@ -156,9 +157,16 @@ To run a separate StorePay escrow program, deploy a new Anchor program with a wa
 
 6. Restart the frontend with `npm run dev` from `frontend`. Wallet transactions and escrow discovery now use the program identified by `NEXT_PUBLIC_PROGRAM_ID`.
 
-## 💾 Local data
+## 💾 Database
 
-In development, the Next.js app persists local data in `frontend/data/escrowpay.json`. This is suitable for local demos only. Use a managed database and secure session configuration before deploying a production instance.
+StorePay uses PostgreSQL for merchant accounts, products, payment sessions, notifications, P2P listings, payout profiles, webhook delivery history, and checkout sessions. Solana escrow accounts and token vaults remain on-chain.
+
+Create `frontend/.env.local` with the server-only database and session configuration:
+
+```env
+DATABASE_URL=postgresql://USER:PASSWORD@HOST:5432/DATABASE?sslmode=require
+AUTH_SECRET=your-session-signing-secret
+```
 
 
 ## ▶️ Run the frontend
@@ -166,7 +174,9 @@ In development, the Next.js app persists local data in `frontend/data/escrowpay.
 ```bash
 cd frontend
 cp .env.example .env.local
+# Set DATABASE_URL and AUTH_SECRET in .env.local
 npm install
+npm run db:migrate
 npm run dev
 ```
 Open [http://localhost:3000](http://localhost:3000).

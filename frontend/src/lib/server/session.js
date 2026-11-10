@@ -1,47 +1,20 @@
-import fs from 'fs';
-import path from 'path';
-import { hmacSha256Hex, randomHex } from './crypto';
+import { hmacSha256Hex } from './crypto';
 
 export const SESSION_COOKIE = 'escrowpay_session';
 export const SESSION_TTL_SECONDS = 7 * 24 * 60 * 60;
 
-const SECRET_FILE = path.join(process.cwd(), 'data', '.auth-secret');
 let cachedSecret = null;
 
-// Prefer AUTH_SECRET from the environment; otherwise persist a generated
-// secret next to the JSON database so restarts do not invalidate sessions.
+// Authentication state must be portable across server instances. A generated
+// local file is unsafe in a serverless deployment because each instance differs.
 function getSecret() {
   if (cachedSecret) return cachedSecret;
 
-  const env = process.env.AUTH_SECRET;
-  if (env && env.trim().length >= 32) {
-    cachedSecret = env.trim();
-    return cachedSecret;
+  const env = process.env.AUTH_SECRET?.trim();
+  if (!env) {
+    throw new Error('AUTH_SECRET must be set.');
   }
-
-  try {
-    const stored = fs.readFileSync(SECRET_FILE, 'utf8').trim();
-    if (stored.length >= 32) {
-      cachedSecret = stored;
-      return cachedSecret;
-    }
-  } catch (err) {
-    if (err.code !== 'ENOENT') {
-      console.warn('[escrowpay] could not read auth secret:', err.message);
-    }
-  }
-
-  const generated = randomHex(32);
-  try {
-    fs.mkdirSync(path.dirname(SECRET_FILE), { recursive: true });
-    fs.writeFileSync(SECRET_FILE, generated, { mode: 0o600 });
-  } catch (err) {
-    console.warn(
-      '[escrowpay] could not persist auth secret; sessions reset on restart:',
-      err.message
-    );
-  }
-  cachedSecret = generated;
+  cachedSecret = env;
   return cachedSecret;
 }
 

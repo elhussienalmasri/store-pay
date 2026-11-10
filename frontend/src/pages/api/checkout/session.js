@@ -1,5 +1,6 @@
-// In-memory session store (in production, backed by database)
-const sessions = new Map();
+import { createCheckoutSession, findCheckoutSession } from '../../../lib/server/store';
+
+const CHECKOUT_SESSION_TTL_MS = 60 * 60 * 1000;
 
 export default async function handler(req, res) {
   if (req.method === 'POST') {
@@ -21,8 +22,8 @@ export default async function handler(req, res) {
       createdAt: new Date().toISOString(),
       status: 'pending',
     };
-
-    sessions.set(sessionId, sessionData);
+    sessionData.expiresAt = new Date(Date.now() + CHECKOUT_SESSION_TTL_MS).toISOString();
+    await createCheckoutSession(sessionData);
 
     return res.status(200).json({
       success: true,
@@ -34,10 +35,11 @@ export default async function handler(req, res) {
 
   if (req.method === 'GET') {
     const { sessionId } = req.query;
-    if (!sessionId || !sessions.has(sessionId)) {
+    const session = sessionId ? await findCheckoutSession(String(sessionId)) : null;
+    if (!session) {
       return res.status(404).json({ error: 'Checkout session not found or expired.' });
     }
-    return res.status(200).json(sessions.get(sessionId));
+    return res.status(200).json(session);
   }
 
   return res.status(405).json({ error: 'Method not allowed' });

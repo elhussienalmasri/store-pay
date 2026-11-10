@@ -12,7 +12,7 @@ import {
   sha256Hex,
 } from '../../../../lib/server/crypto';
 import { getEurUsdRate, getSolUsd } from '../../../../lib/server/pricing';
-import { insertSession, readDb } from '../../../../lib/server/store';
+import { findMarketplaceProduct, insertSession } from '../../../../lib/server/store';
 import { notifySeller } from '../../../../lib/server/notifications';
 import { sessionPublicView } from '../../../../lib/server/views';
 import {
@@ -43,16 +43,11 @@ export default async function handler(req, res) {
       throw new ApiError(400, 'Quantity must be a whole number between 1 and 100');
     }
 
-    const db = await readDb();
-    const product = db.products.find((item) => item.id === productId);
-    if (!product || product.active === false || product.listed === false) {
+    const item = await findMarketplaceProduct(productId);
+    if (!item) {
       throw new ApiError(404, 'Item not found or is no longer available');
     }
-
-    const merchant = db.merchants.find((item) => item.id === product.merchantId);
-    if (!merchant) {
-      throw new ApiError(404, 'Seller not found');
-    }
+    const { product, merchant } = item;
 
     const configured = merchant.config?.mode || 'escrow';
     const allowed = configured === 'both' ? SUPPORTED_MODES : [configured];

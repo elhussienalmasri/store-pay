@@ -295,7 +295,7 @@ export function LandingPage() {
                 </div>
 
                 <h1 className="text-3xl sm:text-4xl lg:text-5xl font-black tracking-tight text-white leading-[1.05]">
-                  Payment solutions for your store. <span className="bg-gradient-to-r from-[#9945FF] via-[#b06bff] to-[#14F195] bg-clip-text text-transparent">Buy</span>, sell and swap crypto
+                  Payment <span className="bg-gradient-to-r from-[#9945FF] via-[#b06bff] to-[#14F195] bg-clip-text text-transparent">solutions</span> for your store. <span className="bg-gradient-to-r from-[#9945FF] via-[#b06bff] to-[#14F195] bg-clip-text text-transparent">Buy</span>, sell and swap crypto
                   <span className="block bg-gradient-to-r from-[#9945FF] via-[#b06bff] to-[#14F195] bg-clip-text text-transparent">
                     without the trust gap.
                   </span>
